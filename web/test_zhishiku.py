@@ -27,8 +27,9 @@ if __name__ == '__main__':
 if __name__ == '__main__':
     import ipdb
     ipdb.set_trace()
-    res = zhishiku.zsk[2]['zsk'].find('南阳产业政策')
-    
-    res = zhishiku.zsk[0]['zsk'].find('南阳产业政策')
-    res = zhishiku.zsk[0]['zsk'].read_find_content(res[0])
+    #res = zhishiku.zsk[0]['zsk'].find('南阳产业政策')
+    #res = zhishiku.zsk[1]['zsk'].find("南阳产业政策")
+    #res = zhishiku.zsk[2]['zsk'].find("南阳产业政策")
+    res = zhishiku.zsk[6]['zsk'].find("南阳产业政策")
+    #res = zhishiku.zsk[3]['zsk'].read_find_content(res[0])
     print(res)

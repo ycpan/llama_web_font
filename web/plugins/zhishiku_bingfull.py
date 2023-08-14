@@ -97,7 +97,8 @@ def selenium_read(url):
 
 def find(search_query,step = 0,max_title = 5):
     # max_title:最多点击的条目数，由于爬取网站耗时较多，不建议设置的太大
-    url = 'https://cn.bing.com/search?q={}'.format(search_query)
+    #url = 'https://cn.bing.com/search?q={}'.format(search_query)
+    url = 'https://www.bing.com/search?q={}&mkt=zh-CN&rdr=1&rdrig=1242209326D94FA38E54B55D255F1D0B'.format(search_query)
     res = session.get(url, headers=headers, proxies=proxies)
     r = res.text
 

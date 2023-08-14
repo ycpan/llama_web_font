@@ -70,9 +70,9 @@ def load_zsk():
         raise e
 
 
-#if __name__ == '__main__':
-#    thread_load_zsk = threading.Thread(target=load_zsk)
-#    thread_load_zsk.start()
+if __name__ == '__main__':
+    thread_load_zsk = threading.Thread(target=load_zsk)
+    thread_load_zsk.start()
 
 
 @route('/llm')
@@ -171,9 +171,10 @@ def api_chat_box():
     if temperature is None:
         temperature = 0.8
     #use_zhishiku = data.get('zhishiku')
-    #if use_zhishiku is None:
-    #    use_zhishiku = False
-    use_zhishiku = False
+    use_zhishiku = True
+    if use_zhishiku is None:
+        use_zhishiku = False
+    #use_zhishiku = False
     messages = data.get('messages')
     #prompt = "用中文回答后续问题。"+messages[-1]['content']
     prompt = messages[-1]['content']
@@ -305,7 +306,7 @@ async def websocket_endpoint(websocket: WebSocket):
         async with lock:
             print("\033[1;32m"+IP+":\033[1;31m"+prompt+"\033[1;37m")
             try:
-                for response in LLM.chat_one(prompt, history_formatted, max_length, top_p, temperature, zhishiku=False):
+                for response in LLM.chat_one(prompt, history_formatted, max_length, top_p, temperature, zhishiku):
                     if (response):
                         # start = time.time()
                         await websocket.send_text(response)
@@ -324,6 +325,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 session.add(jl)
                 session.commit()
         print(response)
+        #zhishiku.zsk[1]['zsk'].save()
         await websocket.close()
     except WebSocketDisconnect:
         pass

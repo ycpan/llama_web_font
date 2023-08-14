@@ -10,45 +10,7 @@ from langchain import PromptTemplate, LLMChain
 from langchain.callbacks.base import BaseCallbackHandler
 from typing import Any
 from .langchain_qa import mymodel
-content_smaple = """
-从产业规模来看，十三五”时期，北京集成电路产业规模从2015年的606.4亿元增加到2020
-年超过900亿元，年均复合增长率为8.4%，2020年北京市集成电路产业规模占全国集成电路
-产业总规模的10%。
-从集成电路产量排名来看，根据国家统计局数据，2020年中国集成电路产量主要集中在江
-苏、甘肃、广东、上海、浙江、北京、四川等省市，这7个省市的集成电路产量占全国集成
-电路产量的90%以上。其中北京市的集成电路产量为170.7亿块，占全国总产量(2614.7亿块
-)的6.5%。
 
-从企业数量规模来看，目前北京市集成电路产业相关的企业数量仅占全国的1%，数量规模
-与广东、福建、江苏等省份差距较大，但是结合北京市10%的产业规模占比来看，反映出北
-京市的集成电路企业平均产值规模较大，例如中芯国际、北方华创等大型上市公司在全国
-市场均处于领先地位。
-
-目前北京市已经形成了完整的集成电路产业链布局，以北京经济技术开发区为代表的产业
-集聚区是北京乃至全国集成电路产业聚集度较高、技术水平先进的区域，现已聚集了中芯
-国际、紫光股份、北方华创等行业龙头企业，构建包括设计、晶圆制造、封装测试、装备
-、零部件及材料等完备的集成电路产业链和“芯片-软件-整机-系统-信息服务”大集成电路
-生态系统，相关企业约100家
-
-跟据中国半导体行业协会公布的数据显示，2020年，北京的集成电路设计环节的产业规模
-占整个集成电路产业的比重超过50%，以海淀区中关村为代表的集成电路设计领域的技术水
-平在国内处于领先地区。2020年北京市集成电路设计领域的市场规模占全国的13%，远高于
-制造和封测环节的市场份额。
-
-集成电路产业是北京市政府大力发展的特色优势产业之一。早在2014年2月，北京市政府就
-颁布了关于《北京市进一步促进软件产业和集成电路产业发展若干政策》的通知，通知明
-确阐述推进集成电路产业聚集发展，在中关村科学城建设国家级集成电路设计产业基地，
-在南部高技术制造业和国家级新兴产业发展带建设集成电路产业园。2021年8月出台的《北
-京市“十四五”时期高精尖产业发展规划》中，集成电路产业被纳入重点特色优势产业之一
-，推动北京市打造具有国际竞争力的集成电路产业集群。政策层面大力支持北京市集成电
-路的产业发展。
-
-集成电路设计领域一直是北京集成电路产业的支柱环节，其技术水平也处于全国领先地位
-。根据中国半导体行业协会集成电路设计分会公布的数据显示，2020年集成电路设计业销
-售额排名前5的城市分别是深圳、上海、北京、杭州、无锡，其中北京集成电路设计业销售
-额为494.3亿元，位居全国第三。
-"""
-write_sql = False
 #n_gpu_layers = 22  # Change this value based on your model and your GPU VRAM pool.
 n_batch = 512  # Should be between 1 and n_ctx, consider the amount of VRAM in your GPU.
 #n_batch = 8096  # Should be between 1 and n_ctx, consider the amount of VRAM in your GPU.
@@ -56,28 +18,23 @@ n_batch = 512  # Should be between 1 and n_ctx, consider the amount of VRAM in y
 n_ctx=5000
 
 template = """Below is an instruction that describes a task. Write a response that appropriately completes the request.
-
 {question}
 """
 prompt = PromptTemplate(template=template, input_variables=["question"])
-#zhishiku_template = (
-#    "Below is an instruction that describes a task. "
-#    "Write a response that appropriately completes the request.\n\n"
-#    "### Instruction:\n"
-#    "以下为背景知识：\n"
-#    "{context}"
-#    "\n"
-#    "请根据以上背景知识, 回答这个问题：{question}。\n\n"
-#    "### Response: "
-#)
-zhishiku_template = """Below is an instruction that describes a task. Write a response that appropriately completes the request.
-### Instruction:
-你是一个产业专家，请你提供专业、有逻辑、内容真实、有价值的详细回复。请回答{question}。下面的文本可能会对问题形成干扰，请判断下述文本对回答是否有帮助，如果有帮助请结合下述内容进行回答问题；如果没有帮助，请忽略。
-{context}
-### Response: 
-"""
-#你是一个产业专家，请回答{question}。下面的文本可能会对问题形成干扰，请判断下述文本对回答是否有帮助，如果有帮助请结合下述内容进行回答问题；如果没有帮助，请忽略。
-#请选择性的使用上述文本，结合和问题相关的内容，请回答{question},尽量减少重复表达。
+zhishiku_template = (
+    "Below is an instruction that describes a task. "
+    "Write a response that appropriately completes the request.\n\n"
+    "### Instruction:\n"
+    "以下为背景知识：\n"
+    "{context}"
+    "\n"
+    "请根据以上背景知识, 回答这个问题：{question}。\n\n"
+    "### Response: "
+)
+#zhishiku_template = """Below is an instruction that describes a task. Write a response that appropriately completes the request.
+#{context}
+#根据上述内容，请回答{question}
+#"""
 zhishiku_prompt = PromptTemplate(template=zhishiku_template, input_variables=["question","context"])
 # Defined a QueueCallback, which takes as a Queue object during initialization. Each new token is pushed to the queue.
 #class QueueCallback(BaseCallbackHandler):
@@ -178,22 +135,12 @@ if settings.llm.strategy.startswith("Q"):
         #    yield text
         #question = "北京市的产业特点"
         #prompt = PromptTemplate(template=template, input_variables=["question"])
-        #import ipdb
-        #ipdb.set_trace()
-        myprompt = prompt.format(question=question)
+        #myprompt = prompt.format(question=question)
         mystream = None
         if zhishiku:
             print('准备加载网页')
             try:
-                zhishiku_context = zhishiku.zsk[1]['zsk'].find(question)
-                if not zhishiku_context:
-                    zhishiku_context = zhishiku.zsk[0]['zsk'].find(question)
-                    #write_sql = True
-                    zhishiku.zsk[1]['zsk'].save(question,question,zhishiku_context,'','')
-                #else:
-                #    write_sql = False
-                #zhishiku_context = zhishiku.zsk[6]['zsk'].find(question)
-                #zhishiku_context = content_smaple
+                zhishiku_context = zhishiku.zsk[0]['zsk'].find(question)
                 print(zhishiku_context)
                 #zhishiku_context = prompt.format(question=zhishiku_context[0])
                 #if zhishiku_context:
@@ -201,22 +148,16 @@ if settings.llm.strategy.startswith("Q"):
                 #    myprompt = zhishiku_prompt.format(question=question,context=zhishiku_context)
                 #    print('网页加载成功完成')
                 if zhishiku_context:
-                    #mystream = model.qa_stream(zhishiku_context,question)
-                    myprompt = zhishiku_prompt.format(question=question,context=zhishiku_context)
-                    mystream = model.stream(myprompt)
+                    mystream = model.qa_stream(zhishiku_context,question)
             except Exception as e:
                 print('in zhishiku process,happend {}'.format(e))
         if mystream is None:
-            mystream = model.stream(myprompt)
+            mystream = model.stream(question)
         #for next_token, content in mystream(myprompt):
         for next_token, content in mystream:
             #print(next_token)
             #print(content)
             yield content
-        #import ipdb
-        #ipdb.set_trace()
-        #if write_sql:
-        #    zhishiku.zsk[1]['zsk'].save(question,question,zhishiku_context,content,'')
 
     def load_model():
         global model

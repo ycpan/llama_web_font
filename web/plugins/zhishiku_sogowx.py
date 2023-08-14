@@ -1,5 +1,8 @@
 import requests
 import re
+from goose3 import Goose
+from goose3.text import StopWordsChinese
+g = Goose({'target_language':'zh_cn','browser_user_agent': 'Version/5.1.2 Safari/534.52.7','stopwords_class': StopWordsChinese})
 session = requests.Session()
 # 正则提取摘要和链接
 title_pattern = re.compile('id="sogou_vr_11002601_title_\d" uigs="article_title_\d">(.*?)</a>')
@@ -33,9 +36,44 @@ def find(search_query,step = 0):
         tmp = re.sub('^.*?>', '', i).replace('\n', '').strip()
         tmp2 = re.sub('<[^<]+?>', '', tmp).replace('\n', '').strip()
         clear_title.append(tmp2)
-    return [{'title': "["+clear_title[i]+"]("+"https://weixin.sogou.com"+link[i]+")", 'content':clear_brief[i]}
-            for i in range( len(brief))]
+    url_li = []
+    for i in range(len(brief)):
+        title = clear_title[i]
+        url = "https://weixin.sogou.com"  +link[i]
+        content_brief = clear_brief[i]
+        u_d = {'title':title,'url':url,'content_brief':content_brief}
+        url_li.append(u_d)
+    import ipdb
+    ipdb.set_trace()
+    content = get_content(url_li)
+    return content
+    #return [{'title': "["+clear_title[i]+"]("+"https://weixin.sogou.com"+link[i]+")", 'content':clear_brief[i]}
+    #        for i in range( len(brief))]
 
+def get_content(res_li):
+    """
+    {'title': '南阳市出台《关于加快文旅产业高质量发展的实施意见》_市县...', 'url': 'https://www.henan.gov.cn/2022/11-25/2646103.html'}
+    """
+    res = []
+    len_str = 0
+    for da in res_li:
+        link = da['url']
+        #尝试获取真实url
+        url=data.get("url")
+        r = session.get(url, headers=headers, proxies=proxies)
+        url=''.join(re.findall("url.+'(.*?)'", r.text))
+
+        article = g.extract(url=url)
+        title = article.title
+        cleaned_text = article.cleaned_text
+        len_str += len(title)
+        len_str += len(cleaned_text)
+        res.append(title)
+        res.append(cleaned_text)
+        if len_str > 2000:
+            break
+    res =  '\n'.join(res)
+    return res
 def read_find_content(data):
     import ipdb
     ipdb.set_trace()
