@@ -74,6 +74,24 @@ if __name__ == '__main__':
     thread_load_zsk = threading.Thread(target=load_zsk)
     thread_load_zsk.start()
 
+chanyeku = None
+
+
+def load_zsk():
+    try:
+        global chanyeku
+        import plugins_chanyeku.chanyeku as cyk
+        chanyeku = cyk
+        success_print("产业库加载完成")
+    except Exception as e:
+        error_helper(
+            "知识库加载失败，请阅读说明", r"https://www.incoshare.com/#%E7%9F%A5%E8%AF%86%E5%BA%93")
+        raise e
+
+
+if __name__ == '__main__':
+    thread_load_zsk = threading.Thread(target=load_zsk)
+    thread_load_zsk.start()
 
 @route('/llm')
 def llm_js():
@@ -189,7 +207,7 @@ def api_chat_box():
     error = ""
     print("\033[1;32m"+IP+":\033[1;31m"+prompt+"\033[1;37m")
     try:
-        for response_text in LLM.chat_one(prompt, history_formatted, max_length, top_p, temperature, zhishiku=use_zhishiku):
+        for response_text in LLM.chat_one(prompt, history_formatted, max_length, top_p, temperature, zhishiku=use_zhishiku,chanyeku=chanyeku):
             if (response_text):
                 # yield "data: %s\n\n" %response_text
                 yield "data: %s\n\n" % json.dumps({"response": response_text})
@@ -306,7 +324,7 @@ async def websocket_endpoint(websocket: WebSocket):
         async with lock:
             print("\033[1;32m"+IP+":\033[1;31m"+prompt+"\033[1;37m")
             try:
-                for response in LLM.chat_one(prompt, history_formatted, max_length, top_p, temperature, zhishiku):
+                for response in LLM.chat_one(prompt, history_formatted, max_length, top_p, temperature, zhishiku,chanyeku=chanyeku):
                     if (response):
                         # start = time.time()
                         await websocket.send_text(response)

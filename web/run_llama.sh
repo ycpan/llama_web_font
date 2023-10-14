@@ -11,6 +11,6 @@ PYTHON=""
 #    fi
 #sleep 1
 #done
-#CUDA_VISIBLE_DEVICES=1 python wenda.py -t llama
-python wenda.py -t llama
+CUDA_VISIBLE_DEVICES=0 python wenda.py -t llama
+#python wenda.py -t llama
 #python wenda.py -t llama

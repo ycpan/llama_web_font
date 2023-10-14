@@ -1,0 +1,17 @@
+{
+    "scope": "/",
+    "name": "智星问答",
+    "short_name": "智星问答",
+    "start_url": "/",
+    "display": "standalone",
+    "description": "智星问答",
+    "lang": "cn",
+    "orientation": "portrait",
+    "theme_color": "#bb3318",
+    "background_color": "#fff",
+    "icons": [{
+        "src": "incoshare.jpg",
+        "sizes": "144x144",
+        "type": "image/png"
+    }]
+}

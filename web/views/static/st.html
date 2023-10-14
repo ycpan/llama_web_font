@@ -1,0 +1,173 @@
+<html>
+
+<head>
+	<title>智星</title>
+	<meta charset="utf-8">
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="mobile-web-app-capable" content="yes" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<meta name="viewport" content="width=400,  user-scalable=no">
+	<link rel="shortcut icon" href="#" />
+	<!-- <link href="https://npm.elemecdn.com/@mdi/font@6.9.96/css/materialdesignicons.min.css" rel="stylesheet">
+	<link href="https://npm.elemecdn.com/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+	<script src="https://npm.elemecdn.com/vue@2.x/dist/vue.min.js"></script>
+	<script src="https://npm.elemecdn.com/vuetify@2.x/dist/vuetify.min.js"></script> -->
+
+	<link href="/static/mdi_font/css/materialdesignicons.min.css" rel="stylesheet">
+
+	<link href="/static/vuetify.min.css" rel="stylesheet">
+	<script src="/static/vue.js"></script>
+	<script src="/static/vue-i18n.js"></script>
+	<script src="/static/vuetify.min.js"></script>
+	<script src="/static/markdown-it.min.js"></script>
+	<script src="/static/strings.js"></script>
+	<style>
+		.v-application--wrap {
+			display: unset;
+			margin: 30px;
+		}
+
+		.v-sheet.v-card {
+			margin: 20px;
+			padding: 10px;
+		}
+	</style>
+</head>
+
+<body>
+	<div id="app" v-cloak>
+		<v-app>
+			<h1>RTST知识库在线管理</h1>
+			<v-card elevation="2">
+				<v-card-title>当前知识库管理</v-card-title>
+				<v-divider></v-divider><br>
+				<v-card-text>
+					<v-row>
+						<v-col cols="12" sm="6">
+							<v-combobox v-model="memory_name" :items="['default',localStorage['wenda_rtst_ID']]"
+								:label='$t("memory_name")'></v-combobox>
+						</v-col>
+						<v-col cols="12" sm="2">
+						</v-col>
+					</v-row>
+				</v-card-text>
+				<v-card-actions>
+					<v-btn color="purple" dark size="x-large" @click="save_rtst()">
+						{{$t("save_to_disk")}}
+					</v-btn>
+				</v-card-actions>
+			</v-card>
+
+
+			<v-card elevation="2">
+				<v-card-title>测试查询</v-card-title>
+				<v-divider></v-divider><br>
+				<v-card-text>
+					<v-row>
+						<v-col cols="12" sm="6">
+							<v-text-field v-model="test_zsk_prompt" label="关键词" clearable></v-text-field>
+
+						</v-col>
+						<v-col cols="12" sm="6">
+							<v-text-field v-model="test_zsk_step" label="上下文数量" clearable></v-text-field>
+						</v-col>
+					</v-row>
+
+					<v-data-table
+						:headers="[{ text: '来源', value: 'title' },{ text: '分数', value: 'score' },{ text: '内容', value: 'content' }]"
+						:items="zhishiku" hide-default-footer></v-data-table>
+				</v-card-text>
+				<v-card-actions>
+					<v-btn color="purple" dark size="x-large"
+						@click="find_in_memory(test_zsk_prompt,test_zsk_step,memory_name)">
+						查询
+					</v-btn>
+				</v-card-actions>
+			</v-card>
+			<v-card elevation="2">
+				<v-card-title>测试上传</v-card-title>
+				<v-divider></v-divider><br>
+				<v-card-text>
+					<v-row>
+						<v-col cols="12" sm="6">
+							<v-text-field v-model="title" :label='$t("title")' clearable></v-text-field>
+						</v-col>
+						<v-col cols="12" sm="6">
+						</v-col>
+						<v-textarea :placeholder='$t("content")' v-model="content">
+						</v-textarea>
+					</v-row>
+				</v-card-text>
+				<v-card-actions>
+					<v-btn color="purple" dark size="x-large" @click="upload_rtst_zhishiku(title,content)">
+						{{$t("upload")}}
+					</v-btn>
+				</v-card-actions>
+			</v-card>
+		</v-app>
+	</div>
+	<script>
+		let chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('')
+		genID = () => 'xxxxxxxxxxxx'.replace(/x/g, function () {
+			return chars[Math.random() * 62 | 0]
+		})
+		if (!localStorage['wenda_rtst_ID']) localStorage['wenda_rtst_ID'] = genID()
+		app = new Vue({
+			el: '#app',
+			vuetify: new Vuetify(),
+			i18n: i18n,
+			data: () => ({
+				content: '',
+				title: '',
+				memory_name: localStorage['wenda_rtst_ID'],
+				test_zsk_prompt: "",
+				test_zsk_step: 1,
+				zhishiku: [],
+			}),
+			methods: {
+			}
+		})
+
+		find_in_memory = async (s, step, memory_name) => {
+			response = await fetch("/api/find_rtst_in_memory", {
+				method: 'post',
+				body: JSON.stringify({
+					prompt: s,
+					step: step,
+					memory_name: app.memory_name
+				}),
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			})
+			let json = await response.json()
+			console.table(json)
+			app.zhishiku = json
+			return json
+		}
+		upload_rtst_zhishiku = async (title, txt) => {
+			response = await fetch("/api/upload_rtst_zhishiku", {
+				method: 'post',
+				body: JSON.stringify({
+					title: title,
+					txt: txt,
+					memory_name: app.memory_name
+				}),
+				headers: { 'Content-Type': 'application/json' }
+			})
+			alert(await response.text())
+		}
+		save_rtst = async () => {
+			response = await fetch("/api/save_rtst_zhishiku", {
+				method: 'post',
+				body: JSON.stringify({
+					memory_name: app.memory_name
+				}),
+				headers: { 'Content-Type': 'application/json' }
+			})
+			alert(await response.text())
+		}
+	</script>
+</body>
+
+</html>

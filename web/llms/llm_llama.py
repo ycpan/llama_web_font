@@ -8,7 +8,12 @@ from langchain.llms import OpenAI
 from langchain.llms import LlamaCpp
 from langchain import PromptTemplate, LLMChain
 from langchain.callbacks.base import BaseCallbackHandler
+from .llm_remote import get_output
+from .llm_remote import get_output_v1
 from typing import Any
+import re
+import time
+import pandas as pd
 from .langchain_qa import mymodel
 content_smaple = """
 从产业规模来看，十三五”时期，北京集成电路产业规模从2015年的606.4亿元增加到2020
@@ -55,9 +60,15 @@ n_batch = 512  # Should be between 1 and n_ctx, consider the amount of VRAM in y
 #n_ctx=8096
 n_ctx=5000
 
-template = """Below is an instruction that describes a task. Write a response that appropriately completes the request.
-
+#template = """Below is an instruction that describes a task. Write a response that appropriately completes the request.
+#
+#{question}
+#"""
+template = """[INST] <<SYS>>
+You are a helpful assistant. 你是一个乐于助人的助手。
+<</SYS>>
 {question}
+[/INST]
 """
 prompt = PromptTemplate(template=template, input_variables=["question"])
 #zhishiku_template = (
@@ -70,11 +81,21 @@ prompt = PromptTemplate(template=template, input_variables=["question"])
 #    "请根据以上背景知识, 回答这个问题：{question}。\n\n"
 #    "### Response: "
 #)
-zhishiku_template = """Below is an instruction that describes a task. Write a response that appropriately completes the request.
-### Instruction:
-你是一个产业专家，请你提供专业、有逻辑、内容真实、有价值的详细回复。请回答{question}。下面的文本可能会对问题形成干扰，请判断下述文本对回答是否有帮助，如果有帮助请结合下述内容进行回答问题；如果没有帮助，请忽略。
+#zhishiku_template = """Below is an instruction that describes a task. Write a response that appropriately completes the request.
+#### Instruction:
+#你是一个产业专家，请你提供专业、有逻辑、内容真实、有价值的详细回复。请回答{question}。下面的文本可能会对问题形成干扰，请判断下述文本对回答是否有帮助，如果有帮助请结合下述内容进行回答问题；如果没有帮助，请忽略。
+#{context}
+#### Response: 
+#"""
+#You are a helpful assistant. 你是一个乐于助人的助手。
+zhishiku_template = """[INST] <<SYS>>
+你是一个产业专家，请你提供专业、有逻辑、内容真实、有价值的详细回复，回复内容中不要出现"根据提供的文本内容"等字样。
+<</SYS>>
+
+
+请回答{question}。下面的文本可能会对问题形成干扰，请判断下述文本对回答是否有帮助，如果有帮助请结合下述内容进行回答问题；如果没有帮助，请忽略。
 {context}
-### Response: 
+ [/INST]
 """
 #你是一个产业专家，请回答{question}。下面的文本可能会对问题形成干扰，请判断下述文本对回答是否有帮助，如果有帮助请结合下述内容进行回答问题；如果没有帮助，请忽略。
 #请选择性的使用上述文本，结合和问题相关的内容，请回答{question},尽量减少重复表达。
@@ -150,7 +171,7 @@ if settings.llm.strategy.startswith("Q"):
         return history_formatted+" "
 
 
-    def chat_one(question, history_formatted, max_length, top_p, temperature, zhishiku=False):
+    def chat_one(question, history_formatted, max_length, top_p, temperature, zhishiku=False,chanyeku=False):
         def generate_prompt(instruction):
             #return f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.
             
@@ -181,42 +202,178 @@ if settings.llm.strategy.startswith("Q"):
         #import ipdb
         #ipdb.set_trace()
         myprompt = prompt.format(question=question)
-        mystream = None
-        if zhishiku:
-            print('准备加载网页')
-            try:
-                zhishiku_context = zhishiku.zsk[1]['zsk'].find(question)
-                if not zhishiku_context:
-                    zhishiku_context = zhishiku.zsk[0]['zsk'].find(question)
-                    #write_sql = True
-                    zhishiku.zsk[1]['zsk'].save(question,question,zhishiku_context,'','')
-                #else:
-                #    write_sql = False
-                #zhishiku_context = zhishiku.zsk[6]['zsk'].find(question)
-                #zhishiku_context = content_smaple
-                print(zhishiku_context)
-                #zhishiku_context = prompt.format(question=zhishiku_context[0])
-                #if zhishiku_context:
-                #    #myprompt = zhishiku_prompt.format(question=question,context=zhishiku_context[0]['content'])
-                #    myprompt = zhishiku_prompt.format(question=question,context=zhishiku_context)
-                #    print('网页加载成功完成')
-                if zhishiku_context:
-                    #mystream = model.qa_stream(zhishiku_context,question)
-                    myprompt = zhishiku_prompt.format(question=question,context=zhishiku_context)
-                    mystream = model.stream(myprompt)
-            except Exception as e:
-                print('in zhishiku process,happend {}'.format(e))
-        if mystream is None:
-            mystream = model.stream(myprompt)
-        #for next_token, content in mystream(myprompt):
-        for next_token, content in mystream:
-            #print(next_token)
-            #print(content)
-            yield content
+        #output = model.llm.predict(myprompt)
+        #plan_question = '你是一个问题解决专家，请生成相应的计划与步骤\n' + question
+        #plan_question = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，请解决以下问题:\n' + question
+        plan_question = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，请解决以下问题:\n' + question
+        plan_question = plan_question.strip()
+        output = get_output(plan_question)
+        #output = get_output_v1(question)
+        print('规划\n' + output)
+        #pattern = r"Step(\d+):\s+(.*?)\n``(.*?)``"
+        zhishiku_content = None
         #import ipdb
         #ipdb.set_trace()
-        #if write_sql:
-        #    zhishiku.zsk[1]['zsk'].save(question,question,zhishiku_context,content,'')
+        answer = ''
+        if '专利' in question:
+            answer=output
+        #else 'select' in output:
+        #else:
+        elif 'Step' in output:
+            #pattern = r"Step(\d+):(.*?)\n(.*?):``(.*?)``"
+            pattern = r'Step(\d+):(.*?):\n``(.*?)``'
+            matches = re.findall(pattern, output, re.DOTALL)
+            #for step,thought,exec_type,exec_content in matches:
+            for step,exec_type,exec_content in matches:
+                if exec_type == 'exec queryDB':
+                    try:
+                        content = zhishiku.zsk[1]['zsk'].find_by_sql(exec_content)
+                    except Exception as e:
+                        content = []
+                        print('捕获到异常:{}'.format(e))
+                    answer = pd.DataFrame(content)
+                    print('数据库获取')
+                    print(answer)
+
+                    #if len(answer) == 0:
+                    #    answer = '我是一个AI模型，我没有这方面的详细数据，不能回答你的问题'
+                        #myprompt = zhishiku_prompt.format(question=question,context=content)
+                        #mystream = model.stream(myprompt)
+                        #for next_token, content in mystream:
+                        #    yield content
+                    if len(answer) > 0:
+                        #answer = answer.to_markdown()
+                        #answer = answer.to_string(index=False)
+                        answer.index = answer.index + 1
+                        answer = answer.to_string(index=True,header=False)
+                        answer = answer.replace('\n','<br />\n')
+                    else:
+                        answer = ''
+                    #current_content = ''
+                    #for token in answer.split('\n'):
+                    #    current_content += token
+                    #    time.sleep(0.005)
+                    #    yield current_content
+                    break
+                    zhishiku_content = answer
+                if exec_type == 'exec queryApp':
+                    #import ipdb
+                    #ipdb.set_trace()
+                    data = chanyeku.chanye(exec_content)
+                    answer = data
+                    answer = answer.replace('\n','<br />\n')
+                    break
+                if exec_type == 'exec queryWEB':
+                    zhishiku_context = zhishiku.zsk[1]['zsk'].find(exec_content)
+                    if not zhishiku_context:
+                        zhishiku_context = zhishiku.zsk[0]['zsk'].find(exec_content)
+                        if len(zhishiku_context) > 0:
+                            zhishiku.zsk[1]['zsk'].save(exec_content,exec_content,zhishiku_context,'','')
+                            print('save mysql successfully')
+                    if len(zhishiku_context) > 0:
+                        myprompt = zhishiku_prompt.format(question=exec_content,context=zhishiku_context)
+                        #mystream = model.stream(myprompt)
+                        #for next_token, content in mystream:
+                        #    yield content
+                        break
+                if exec_type == 'extract db content':
+                    new_question = exec_content
+                    if len(zhishiku_content.split('\n')) < 2:
+                        continue
+                    else:
+                        new_qu = zhishiku_content[0:3500] + '\n' + new_question + '，在答案中不要出现从上表可以看出字样'
+                        #new_qu = zhishiku_content[0:3500] + '\n' + '上表是{},请将上述表格复制输出，然后回答{}'.format(matches[2][2],question) + '，在答案中不要出现从上表可以看出字样'
+                        myprompt = prompt.format(question=new_qu)
+                        #myprompt = zhishiku_prompt.format(question=question,context=zhishiku_content)
+                        #model.llm1.stream(myprompt)
+                        
+                        #for content in model.llm1.stream(myprompt):
+                        #for next_token, content in model.stream1(myprompt):
+                        #    #current_content += content
+                        #    yield content
+                        break
+        elif 'llm' not in output:
+            answer = output
+        #else:
+        #myprompt = prompt.format(question=question)
+        #current_content = ''
+        #for content in model.llm1.stream(myprompt):
+        #    current_content += content
+        #    yield current_content
+        if answer.strip():
+            current_content = ''
+            for token in answer.split('\n'):
+                current_content += token + '\n'
+                time.sleep(0.005)
+                yield current_content
+        else:
+            print('prompt\n' + myprompt)
+
+
+            mystream = model.stream(myprompt)
+            #for next_token, content in model.stream(myprompt):
+            for next_token, content in mystream:
+                #current_content += content
+                #yield content
+                yield content.replace('\n','<br />\n'),
+            #break
+            #mystream = model.llm1.stream(myprompt)
+            #for next_token, content in mystream:
+            #    yield content
+            #break
+        #if 'select'  in output:
+        #    res = zhishiku.zsk[1]['zsk'].find_by_sql(output)
+        #    res = str(res)
+        #    curr_content = ''
+        #    for  content in res:
+        #        #print(next_token)
+        #        #print(content)
+        #        curr_content += content
+        #        yield curr_content
+        #    #return 
+
+        #else:
+        #    curr_content = ''
+        #    for  content in output:
+        #        #print(next_token)
+        #        #print(content)
+        #        curr_content += content
+        #        yield curr_content
+        #    #return 
+        #mystream = None
+        ##if zhishiku:
+        ##    try:
+        ##        print('尝试使用mysql加载')
+        ##        zhishiku_context = zhishiku.zsk[1]['zsk'].find(question)
+        ##        #zhishiku_context = zhishiku.zsk[7]['zsk'].find(question)
+        ##        if not zhishiku_context:
+        ##            print('mysql为空，准备加载qdrant')
+        ##            zhishiku_context = zhishiku.zsk[7]['zsk'].find(question)
+        ##            #zhishiku_context = zhishiku.zsk[0]['zsk'].find(question)
+        ##            if not zhishiku_context:
+        ##                print('mysql为空，准备加载网页')
+        ##                zhishiku_context = zhishiku.zsk[0]['zsk'].find(question)
+        ##                #write_sql = True
+        ##                zhishiku.zsk[1]['zsk'].save(question,question,zhishiku_context,'','')
+        ##                print('save mysql successfully')
+        ##        print(zhishiku_context)
+        ##        if zhishiku_context:
+        ##            #mystream = model.qa_stream(zhishiku_context,question)
+        ##            myprompt = zhishiku_prompt.format(question=question,context=zhishiku_context)
+        ##            mystream = model.stream(myprompt)
+        ##    except Exception as e:
+        ##        print('in zhishiku process,happend {}'.format(e))
+        #if mystream is None:
+        #    mystream = model.stream(myprompt)
+        ##for next_token, content in mystream(myprompt):
+        #for next_token, content in mystream:
+        #    #print(next_token)
+        #    #print(content)
+        #    yield content
+        ##import ipdb
+        ##ipdb.set_trace()
+        ##if write_sql:
+        ##    zhishiku.zsk[1]['zsk'].save(question,question,zhishiku_context,content,'')
 
     def load_model():
         global model

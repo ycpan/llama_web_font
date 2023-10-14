@@ -64,7 +64,7 @@ def get_content(res_li):
         len_str += len(cleaned_text)
         res.append(title)
         res.append(cleaned_text)
-        if len_str > 3000:
+        if len_str > 1500:
             break
     res =  '\n'.join(res)
     return res
@@ -103,7 +103,7 @@ def get_related_content(query,content):
         len_str += len(sub_content)
         res[idx]=sub_content
         #if len_str > 1000:
-        if len_str > 1700:
+        if len_str > 1500:
             break
     final_res = []
     #len_res = len(res)
@@ -119,7 +119,7 @@ def get_related_content(query,content):
 
     res = '\n\n'.join(final_res)
     #res = '\n'.join(res)
-    #return res[0:1700]
-    return res[0:1900]
+    return res[0:1700]
+    #return res[0:2500]
 
 

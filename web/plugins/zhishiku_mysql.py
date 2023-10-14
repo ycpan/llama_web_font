@@ -2,6 +2,7 @@ from tqdm import tqdm
 import traceback
 import pymysql
 import hashlib
+import pandas as pd
 #hl.update(str.encode(encoding='utf-8'))
 def get_md5(str_s):
     str_s = str_s.strip('. 。？')
@@ -64,7 +65,7 @@ class batchSql:
            self.clean_value()
         connection.close()
         self.values = []
-        self.batch_insert_sql = None
+        #self.batch_insert_sql = None
     def query_data(self,query_sql):
         res = []
         try:
@@ -109,6 +110,7 @@ port = 3306
 user = 'root'
 passwd = 'Incostar@2021'
 db_name = 'algorithm_app'
+#db_name = 'algorithm'
 my_sql = batchSql(host,port,user,passwd,db_name)
 batch_sql =  "INSERT INTO llm_web(code,question,query_web,content,answer,evaluation) VALUES(%s,%s,%s,%s,%s,%s)"
 my_sql.set_batch_sql(batch_sql)
@@ -120,6 +122,11 @@ def find(s,step=0):
     #return data
     if len(data) > 0:
         return data[0]['content']
+    return data
+def find_by_sql(query_sql,step=0):
+    data = my_sql.query_data(query_sql)
+    if len(data) > 0:
+        return data
     return data
 def save(question,query_web,content,answer,evaluation):
     code = get_md5(question)

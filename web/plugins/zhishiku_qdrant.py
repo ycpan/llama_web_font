@@ -125,8 +125,8 @@ def get_related_content(query,content):
             continue
         len_str += len(sub_content)
         res[idx]=sub_content
-        if len_str > 1200:
-        #if len_str > 1800:
+        #if len_str > 1200:
+        if len_str > 2800:
             break
     final_res = []
     #len_res = len(res)
@@ -142,7 +142,7 @@ def get_related_content(query,content):
 
     res = '\n\n'.join(final_res)
     #res = '\n'.join(res)
-    return res[0:1700]
+    return res[0:3700]
     #return res[0:4500]
 def get_my_doc(doc):
     final_content = doc.payload["content"]
