@@ -1,9 +1,11 @@
 from qdrant_client.models import Distance, VectorParams,FieldCondition,Filter,MatchValue
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain.document_loaders import TextLoader
+from langchain.document_loaders import DirectoryLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.text_splitter import CharacterTextSplitter
 from qdrant_client import QdrantClient
+import time
 import numpy as np
 from qdrant_client.models import PointStruct
 import uuid
@@ -38,7 +40,11 @@ class zhuanliKey:
                                         field_schema="keyword")
             
     def build_keys(self,csv_path,vec_path=None):
-        loader = TextLoader(csv_path)
+        #import ipdb
+        #ipdb.set_trace()
+        #loader = TextLoader(csv_path)
+        loader = DirectoryLoader(csv_path, glob="**/*.txt",show_progress=True,use_multithreading=True,loader_cls=TextLoader)
+        #loader = DirectoryLoader('./', glob="**/*.txt",show_progress=True,use_multithreading=True,loader_cls=TextLoader)
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200,separators=["\n\n", "\n","。","\r","\u3000"])
         #text_splitter = CharacterTextSplitter(chunk_size=2000, chunk_overlap=200,separators=["\n\n", "\n", " ", ""])
@@ -62,21 +68,34 @@ class zhuanliKey:
                             #id=idx,
                             id=str(uuid.uuid3(namespace, key)),
                             vector=vec,
-                            payload={"content": content, "key": key}
+                            #payload={"content": content, "key": key}
+                            payload={"content": content}
                         ))
-                    print(len(ps))
                 bucket = []
             if len(ps)>= 500:
-                import ipdb
-                ipdb.set_trace()
-                try:
-                    self.client.upsert(collection_name=self.collect_name,points=ps)
-                    ps = []
-                except Exception as e:
-                    print(e)
-                    self.client = QdrantClient(self.host, port=6333)
-                    self.client.upsert(collection_name=self.collect_name,points=ps)
-                    ps = []
+                cnt = 0
+                while cnt <= 3:
+                    try:
+                        self.client.upsert(collection_name=self.collect_name,points=ps)
+                        ps = []
+                        break
+                    except Exception as e:
+                        print(e)
+                        try:
+                            print('现在尝试进行第{}次链接'.format(cnt))
+                            time.sleep(5)
+                            self.client = QdrantClient(self.host, port=6333)
+                            self.client.upsert(collection_name=self.collect_name,points=ps)
+                            ps = []
+                            print('第{}次链接成功，写入成功'.format(cnt))
+                            break
+                        except:
+                            print('第{}次链接失败，休息{}s'.format(cnt,10*cnt))
+                            time.sleep(10*cnt)
+                            cnt += 1
+                #if len(ps) > 0 and cnt >= 3:
+                if cnt >= 3:
+                    raise TimeoutError('qdrants insert timeout')
     def search_by_vertix(self,vector):
         hits = self.client.search(
             collection_name=self.collect_name,
@@ -137,16 +156,17 @@ class zhuanliKey:
 if __name__ == '__main__':
     import sys
     #argv = sys.argv
-    csv_path = 'data.txt'
+    #csv_path = 'data.txt'
+    csv_path = '/home/user/panyongcan/project/big_data/pretrain/chanye'
     #csv_path = argv[1]
     #if not csv_path:
     #    print('请加参数')
     #vec_path = '/home/zhangshao/zhangshao/Similarity/examples/data/patent_word_pn_3.npy'
     #zlk = zhuanliKey(collect_name="patent_key_word")
     zlk = zhuanliKey(collect_name="test_query")
-    #zlk.build_keys(csv_path)
-    import ipdb
-    ipdb.set_trace()
+    zlk.build_keys(csv_path)
+    #import ipdb
+    #ipdb.set_trace()
     res = zlk.search_by_name('南阳市')
     #res = zlk.search_by_id('985b95d0-69a1-3f25-b3bc-6779a3d08266')
     #res = zlk.search_by_pn('CN201520086793.3')
