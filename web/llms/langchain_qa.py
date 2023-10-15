@@ -1,10 +1,11 @@
+from plugins.common import settings
 import argparse
 import os
 #file_path = "7.6专精特新企业简介添加企业名称文本.txt"
 file_path = "robotic.txt"
 #file_path = "烟台产业.txt"
 #embedding_path = './all-mpnet-base-v2'
-embedding_path = '/devdata/home/user/panyongcan/Project/embedding/m3e-base'
+embedding_path = settings.librarys.qdrant.model_path
 #model_path = args.model_path
 
 import torch
@@ -96,14 +97,13 @@ class mymodel:
         #n_ctx=5000
         n_ctx=8096
         self.llm = LlamaCpp(
-           # model_path="/devdata/home/user/panyongcan/Project/llama.cpp/zh-models/33B/ggml-model-q4_0.bin", callbacks=[QueueCallback(self.q)], verbose=True, n_gpu_layers=n_gpu_layers,n_ctx=2048, n_batch=n_batch,max_tokens=1024,temperature=0.3,client='Alpaca',repeat_penalty=1.2,top_k=50,top_p=0.95#n_threads=40
         #model_path="/devdata/home/user/panyongcan/Project/llama.cpp/zh-models/7B/ggml-model-q4_0.bin", callbacks=[QueueCallback(self.q)], verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=n_ctx,n_batch=n_batch,max_tokens=1524,temperature=0.2,client='Alpaca'
         #model_path="/devdata/home/user/panyongcan/Project/llama.cpp/zh-models/33B/ggml-model-q2_k.bin", callbacks=[QueueCallback(self.q)], verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=n_ctx,n_batch=n_batch,max_tokens=1024,temperature=0.2,client='Alpaca'
         #model_path="/devdata/home/user/panyongcan/Project/llama.cpp/zh-models/33B/ggml-model-q3_k_s.bin", callbacks=[QueueCallback(self.q)], verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=n_ctx,n_batch=n_batch,max_tokens=1024,temperature=0.2,client='Alpaca'
         ##model_path="/devdata/home/user/panyongcan/Project/llama.cpp/zh-models/33B/ggml-model-q3_k_m.bin", callbacks=[QueueCallback(self.q)], verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=n_ctx,n_batch=n_batch,max_tokens=1024,temperature=0.2,client='Alpaca'
         #model_path="/devdata/home/user/panyongcan/Project/llama.cpp/zh-models/33B/ggml-model-q4_0.bin", callbacks=[QueueCallback(self.q)], verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=n_ctx,n_batch=n_batch,max_tokens=1024,temperature=0.2,client='Alpaca'
         #model_path="/devdata/home/user/panyongcan/Project/llama.cpp/llama2/7B/ggml-model-q4_0.bin", callbacks=[QueueCallback(self.q)], verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=4096,temperature=0.75,top_p=1,max_length=2000,eps=1e-5
-        model_path="/devdata/home/user/panyongcan/Project/llama.cpp/llama2/13B/ggml-model-q4_0.bin", callbacks=[QueueCallback(self.q)], verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=4096,temperature=0.5,top_k=40,top_p=0.9,max_tokens=2000,max_length=2000,suffix='[INST]',eps=1e-5
+        model_path="/home/user/panyongcan/project/big_model/ggml-model-q4_0.bin", callbacks=[QueueCallback(self.q)], verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=4096,temperature=0.5,top_k=40,top_p=0.9,max_tokens=2000,max_length=2000,suffix='[INST]',eps=1e-5
         #model_path="/devdata/home/user/panyongcan/Project/llama.cpp/llama2/merge_7B/ggml-model-q4_0.bin", callbacks=[QueueCallback(self.q)], verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=4096,temperature=0.5,top_k=40,top_p=0.9,max_tokens=2000,max_length=2000,suffix='[INST]',eps=1e-5
         #model_path="/devdata/home/user/panyongcan/Project/llama.cpp/llama2/merge_7B_v3/ggml-model-q4_0.bin", callbacks=[QueueCallback(self.q)], verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=4096,temperature=0.5,top_k=40,top_p=0.9,max_tokens=2000,max_length=2000,suffix='[INST]',eps=1e-5
         #model_path="/devdata/home/user/panyongcan/Project/llama.cpp/llama2/merge_7B/ggml-model-q4_0.bin", callbacks=[QueueCallback(self.q)], verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=4096,temperature=0.5,top_k=40,top_p=0.9,max_tokens=2000,max_length=2000,suffix='[INST]',eps=1e-5

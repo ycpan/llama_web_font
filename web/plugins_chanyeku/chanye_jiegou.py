@@ -3,8 +3,16 @@ import requests
 import json
 import pandas as pd
 import random
+import os 
 from .location_mapper import get_code_from_str
 #from location_mapper import get_code_from_str
+def get_chanye2code():
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    index  = dir_path.find('/web')
+    web_path = dir_path[0:index + 5]
+    csv_path = os.path.join(web_path,'plugins_chanyeku/chanye2code.csv')
+    data = pd.read_csv(csv_path)
+    return data
 
 payload = ""
 headers = {}
@@ -15,7 +23,7 @@ headers = {}
 #    for sub_key in industry2code[key]:
 #        industrycode[sub_key]=industry2code[key][sub_key]
 #        industrycode[sub_key.replace('产业','')]=industry2code[key][sub_key]
-data = pd.read_csv('/devdata/home/user/panyongcan/Project/llama_web_font/web/plugins_chanyeku/chanye2code.csv')
+data = get_chanye2code()
 industrycode = {}
 for _,da in data.iterrows():
     code = da['node']
