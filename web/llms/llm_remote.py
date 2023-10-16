@@ -1,8 +1,8 @@
 import requests
 import json
 
-api_endpoint = "http://10.0.0.20:19327/v1/completions"
-#api_endpoint = "http://10.0.0.12:19327/v1/completions"
+#api_endpoint = "http://10.0.0.20:19327/v1/completions"
+api_endpoint = "http://10.0.0.12:19327/v1/completions"
 #api_endpoint = "http://10.0.0.12:8000/v1/completions"
 access_token = "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"
 
