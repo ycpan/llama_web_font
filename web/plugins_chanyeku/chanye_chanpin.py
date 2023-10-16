@@ -1,7 +1,7 @@
 import re
 #from zhishiku_mysql import find_by_sql
 from .zhishiku_mysql import find_by_sql
-def get_qiyechanpin(city_name='烟台',chanye=''):
+def get_chanyechanpin(city_name='烟台',chanye=''):
     """
     烟台市新能源汽车的主要产品有哪些？
     """
@@ -42,10 +42,12 @@ def get_qiyechanpin(city_name='烟台',chanye=''):
     #        answer += data[i][0]+'、'
     answer = answer + ','.join(chanpin)
     #print(answer)
+    if not chanpin:
+        answer = ''
     return answer
 if __name__ == '__main__':
-    #res = get_qiyechanpin('烟台','新能源')
-    #res = get_qiyechanpin('烟台','')
-    res = get_qiyechanpin('北京','新能源')
-    #res = get_qiyechanpin('万华','化工')
+    #res = get_chanyechanpin('烟台','新能源')
+    #res = get_chanyechanpin('烟台','')
+    res = get_chanyechanpin('北京','新能源')
+    #res = get_chanyechanpin('万华','化工')
     print(res)

@@ -2,7 +2,7 @@ import re
 #from zhishiku_mysql import find_by_sql
 from .zhishiku_mysql import find_by_sql
 #from zhishiku_mysql import find_by_sql
-def get_qiyejishu(city_name='烟台',chanye=''):
+def get_chanyejishu(city_name='烟台',chanye=''):
     res = []
     """
     烟台新能源产业的主要技术有哪些？
@@ -39,9 +39,11 @@ def get_qiyejishu(city_name='烟台',chanye=''):
         if cp.strip():
             jishu.append(cp)
     answer = answer + ','.join(jishu)
+    if not jishu:
+        answer = ''
     #print(answer)
     return answer
 if __name__ == '__main__':
-    data = get_qiyejishu('烟台','新能源')
-    #data = get_qiyejishu('烟台')
+    data = get_chanyejishu('烟台','新能源')
+    #data = get_chanyejishu('烟台')
     print(data)

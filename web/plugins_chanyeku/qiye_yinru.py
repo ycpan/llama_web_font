@@ -22,21 +22,35 @@ for _,da in data.iterrows():
     #if len(code) != 3:
     #    continue
     chanye = da['name']
-    industrycode[chanye]=code
+    #if '新能源' in chanye:
+    #    import ipdb
+    #    ipdb.set_trace()
+    industrycode[chanye.replace('产业','')]=code
     #industrycode[sub_key]=industry2code[key][sub_key]
     #industrycode[sub_key.replace('产业','')]=industry2code[key][sub_key]
 #for key in industry2code:
 #    for sub_key in industry2code[key]:
 #        industrycode[sub_key]=industry2code[key][sub_key]
 #        industrycode[sub_key.replace('产业','')]=industry2code[key][sub_key]
+def get_chanyecode(chanye_name):
+    if chanye_name in industrycode:
+        return industrycode[chanye_name]
+    #else:
+    #    for key in industrycode:
+    #        if chanye_name in key:
+    #            return industrycode[key]
+    return None
 url = "http://10.0.0.16:6092/enterprise_introduction"
 def get_qiyeyinru(city_name='烟台',chanye=''):
     #import ipdb
     #ipdb.set_trace()
-    if chanye:
-        chanye_code=industrycode[chanye][0]
-    else:
-        chanye_code = ''
+    #if chanye:
+    #    chanye_code=industrycode[chanye]
+    #else:
+    #    chanye_code = ''
+    chanye_code = get_chanyecode(chanye)
+    if not chanye_code:
+        return ''
     province,city = get_intergrity_from_str(city_name)
     if province in '北京市天津市重庆市上海市':
         city = province
@@ -98,6 +112,8 @@ def get_qiyeyinru(city_name='烟台',chanye=''):
     data = json.loads(response.text)
     company = [x['name'] for x in data['allCompany']['rows']]
     answer = f'{city_name}在{chanye}上应该引入的企业为:\n' + '\n'.join(company[0:10])
+    if not company:
+        answer = ''
     return answer
 if __name__ == '__main__':
     #data = get_qiyeyinru('')

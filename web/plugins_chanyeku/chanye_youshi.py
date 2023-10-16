@@ -82,7 +82,7 @@ def get_chanyeyoushi(city_name,chanye=''):
     {cy_paiming_str}
     """
     if not paiming:
-        answer = f'由于我的数据不是太完善，当前产业或者地区排名，我也不知道哇'
+        answer = ''
     return answer
 if __name__ == '__main__':
     city_name='烟台'

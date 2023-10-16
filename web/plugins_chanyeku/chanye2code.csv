@@ -859,6 +859,8 @@ ocean,海洋,3,B081402,海洋货物运输
 ocean,海洋,3,B081403,沿海港口
 ocean,海洋,3,B081404,海底管道运输
 laser_additive,激光与增材制造,1,B09,激光与增材制造产业
+laser_additive,激光与增材制造,1,B09,激光
+laser_additive,激光与增材制造,1,B09,增材制造产业
 laser_additive,激光与增材制造,2,B0901,原材料及基础配件
 laser_additive,激光与增材制造,3,B090101,专用材料生产工艺及设备
 laser_additive,激光与增材制造,4,B09010101,金属材料
@@ -1908,6 +1910,8 @@ aerospace,航空航天,5,B0302050304,精准农业
 aerospace,航空航天,5,B0302050305,森林病虫灾监测
 aerospace,航空航天,5,B0302050306,环境监测
 semiconductor,半导体,1,H03,半导体与集成电路产业
+semiconductor,半导体,1,H03,集成电路产业
+semiconductor,半导体,1,H03,半导体
 semiconductor,半导体,2,H0301,原材料
 semiconductor,半导体,3,H030101,晶圆衬底
 semiconductor,半导体,4,H03010101,硅晶圆衬底
@@ -2644,6 +2648,8 @@ construction_machinery,工程机械,4,B07021803,水利专用工程机械
 construction_machinery,工程机械,4,B07021804,矿山用工程机械
 construction_machinery,工程机械,4,B07021805,军用工程机械
 agriculture_food,农业与食品,1,A02,农业与食品产业
+agriculture_food,农业与食品,1,A02,农业
+agriculture_food,农业与食品,1,A02,食品产业
 agriculture_food,农业与食品,2,A0201,种植业
 agriculture_food,农业与食品,3,A020101,谷物种植
 agriculture_food,农业与食品,3,A020102,豆类、油料和薯类种植

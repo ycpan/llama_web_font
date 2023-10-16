@@ -13,6 +13,8 @@ def get_qiyezhongdian(city_name='烟台',chanye=''):
     #    if data[i][0]:
     #        answer += data[i][0]+'、'
     answer = f'{city_name}的重点企业共有{len(data)}家,分别为' + '、'.join(chanye)
+    if not chanye:
+        answer = ''
     #print(answer)
     return answer
 if __name__ == '__main__':

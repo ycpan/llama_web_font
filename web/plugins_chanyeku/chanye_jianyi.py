@@ -103,7 +103,7 @@ def get_chanyejianyi(city_name,chanye=''):
         tisheng_jianyi = f"""对于{tisheng_str}等进行升链，首先推动产业链升级。对于不具备升级条件的，推动产业链转型、或者转型+升级。 """
         answer += tisheng_jianyi
     if not answer:
-        answer = f'由于我的数据不是太完善，当前产业或者地区排名，我也不知道哇'
+        answer = ''
     return answer
 if __name__ == '__main__':
     city_name='烟台'

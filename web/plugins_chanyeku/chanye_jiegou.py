@@ -85,7 +85,7 @@ def get_chanyejiegou(city_name,chanye=''):
     {youshi_str}\n{lieshi_str}"
     """
     if not paiming:
-        answer = f'由于我的数据不是太完善，当前产业或者地区排名，我也不知道哇'
+        answer = ''
     return answer
 if __name__ == '__main__':
     #city_name='烟台'

@@ -49,6 +49,8 @@ def process_data(city_name,data):
             ya = f"{cy}全国排名第{res[cy]}位"
             lie_answer.append(ya)
         answer += '。其中:\n{}'.format('\n'.join(lie_answer)) + '。'
+    if not lieshi_li and not youshi_li:
+        answer = ''
     return answer
 
 def get_chanyezhenduan(city_name='烟台',chanye=''):
