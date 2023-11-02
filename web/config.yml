@@ -2,12 +2,12 @@ logging: False
 #日志
 logging_path: "sqlite:///../record.db?check_same_thread=False"
 # 日志地址 可以连接远程mysql服务器：'mysql+pymysql://root:123456@localhost:3306/db?charset=utf8'
-#port: 17862
 port: 17860
+#port: 17862
 #webui 默认启动端口号"
 library:
    #strategy: "calc:2 rtst:2 agents:0"
-   #strategy:  "sogowx:3 bingsite:2 rtst:2 agents:0"
+   #strategy:  "serper:6 mysql:5 bingfull:5 wn:4 sogowx:3 univeralsearch:2 bingsite:2 qdrant:1 agents:0"
    strategy:  "serper:6 mysql:5 bingfull:5 wn:4 sogowx:3 univeralsearch:2 bingsite:2 qdrant:1 agents:0"
    #库参数，每组参数间用空格分隔，冒号前为知识库类型，后为抽取数量。
 
@@ -59,13 +59,13 @@ librarys:
       #分块重叠长度
       # model_path: "http://127.0.0.1:8000/v1" #在线embedding
       #model_path: "model/m3e-base"
-      #model_path: "/home/user/panyongcan/project/big_model/m3e-base"
+      #model_path: "/home/panyongcan/Project/model/m3e-base"
       model_path: "/devdata/home/user/panyongcan/Project/embedding/m3e-base"
-
       #向量模型存储路径
       device: cuda
       #embedding运行设备
    qdrant:
+      #count: 3
       count: 100
       #最大抽取数量
       size: 20
@@ -74,10 +74,11 @@ librarys:
       #分块重叠长度
       path: txt
       #知识库文本路径
-      #model_path:  "/home/user/panyongcan/project/big_model/m3e-base"
+      #model_path: "model/m3e-base"
+      #model_path: "/home/panyongcan/Project/model/m3e-base"
       model_path: "/devdata/home/user/panyongcan/Project/embedding/m3e-base"
-
       #向量模型存储路径
+      #qdrant_host: "http://localhost:6333"
       qdrant_host: "http://10.0.0.14:6333"
       #qdrant服务地址
       #qdrant_path: "memory/q"
@@ -87,8 +88,10 @@ librarys:
       #qdrant运行设备
       batch_size: 32
       #向量模型批处理大小
+      #collection: qa_collection
       collection: test_query
       #qdrant集合名称
+      #similarity_threshold: 0.8
       similarity_threshold: 0.70
       #相似度阈值
    kg:
@@ -103,6 +106,9 @@ librarys:
 llm_type: rwkv
 #llm模型类型:glm6b、rwkv、llama、replitcode等，详见相关文件
 llm_models:
+   qwen:
+      path: model\Qwen-7B-Chat
+      #模型位置"
    rwkv:
       path: "model/RWKV-4-World-7B-v1-OnlyForTest_52%_trained-20230606-ctx4096-i8.pth" #rwkv模型位置"
       strategy: "cuda fp16i8"
@@ -170,12 +176,11 @@ llm_models:
    llama:
       #path: "model/stable-vicuna-13B.ggml.q4_2.bin"
       path: "/devdata/home/user/panyongcan/Project/llama.cpp/zh-models/33B/ggml-model-q4_0.bin"
-      #path: "/devdata/home/user/panyongcan/Project/llama.cpp/zh-models/7B/ggml-model-q4_0.bin"
       #llama模型位置
       strategy: "Q4_0"       #cpp:运行方式，设置strategy诸如"Q8_0"即可开启
-      #strategy: "Q8_0"       #cpp:运行方式，设置strategy诸如"Q8_0"即可开启
-      #strategy: "cuda fp16i8"
       n_gpu_layers: 60
+      #   strategy: "Q8_0"       #cpp:运行方式，设置strategy诸如"Q8_0"即可开启
+      #strategy: "cuda fp16i8"
    moss:
       path: "model/moss-moon-003-sft-plugin-int4"
       #模型位置
@@ -183,8 +188,13 @@ llm_models:
       #模型参数 暂时不用"
    openai:
       #   api_host: "https://gpt.lucent.blog/v1" #网友的反代
-      #   api_host: "https://api.openai.com/v1" #官方地址
-      api_host: "http://127.0.0.1:8000/v1" #rwkv runner
+      #api_host: "https://api.openai.com/v1" #官方地址
+      api_host: "https://api.gptjk.top/v1" #官方地址
+      #api_host: "https://openai.api2d.net/v1" #官方地址
+      #api_host: "http://10.0.0.20:19327/v1" #rwkv runner
+      #api_host: "http://10.0.0.12:8000/v1" #rwkv runner
+      # https://api2d.com/wiki/doc
+      api_key: "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"
 
    replitcode:
       path: "model\\replit-code-v1-3b"
