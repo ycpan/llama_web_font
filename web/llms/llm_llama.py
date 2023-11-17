@@ -133,7 +133,7 @@ if settings.llm.strategy.startswith("Q"):
         return history_formatted+" "
 
 
-    def chat_one(question, history_formatted, max_length, top_p, temperature, zhishiku=False,chanyeku=False):
+    def chat_one(question, history_formatted, max_length, top_p, temperature,data, zhishiku=False,chanyeku=False):
         def generate_prompt(instruction):
             #return f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.
             

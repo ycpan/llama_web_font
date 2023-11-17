@@ -64,8 +64,8 @@ zhishiku = None
 def load_zsk():
     try:
         global zhishiku
-        #import plugins.zhishiku as zsk
-        #zhishiku = zsk
+        import plugins.zhishiku as zsk
+        zhishiku = zsk
         success_print("知识库加载完成")
     except Exception as e:
         logger and logger.exception(e)
@@ -184,6 +184,8 @@ def api_chat_box():
     response.add_header("Cache-Control", "no-cache")
     response.add_header("X-Accel-Buffering", "no")
     data = request.json
+    #import ipdb
+    #ipdb.set_trace()
     messages = data.get('messages')
     stream = data.get('stream')
     prompt = messages[-1]['content']
@@ -318,6 +320,8 @@ async def websocket_endpoint(websocket: WebSocket):
     # await asyncio.sleep(5)
     try:
         data = await websocket.receive_json()
+        #import ipdb
+        #ipdb.set_trace()
         prompt = data.get('prompt')
         max_length = data.get('max_length')
         if max_length is None:
@@ -355,7 +359,8 @@ async def websocket_endpoint(websocket: WebSocket):
         async with lock:
             print("\033[1;32m"+IP+":\033[1;31m"+prompt+"\033[1;37m")
             try:
-                for response in LLM.chat_one(prompt, history_formatted, max_length, top_p, temperature, data):
+                #for response in LLM.chat_one(prompt, history_formatted, max_length, top_p, temperature, data):
+                for response in LLM.chat_one(prompt, history_formatted, max_length, top_p, temperature, data, zhishiku,chanyeku=chanyeku):
                     if (response):
                         # start = time.time()
                         await websocket.send_text(response)

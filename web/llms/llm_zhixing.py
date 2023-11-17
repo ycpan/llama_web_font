@@ -1,0 +1,226 @@
+import os
+import time
+import openai
+import pandas as pd
+from retry import retry
+from .llm_remote import get_output
+from plugins.common import settings
+
+
+def chat_init(history):
+    return history
+
+class DelataMessage:
+    def __init__(self):
+        self.content=''
+    def __getitem__(self, item):
+        return getattr(self, item)
+def get_solution_data(current_plans,zhishiku):
+    solution_data = ''
+    is_break = False
+    for current_plan in current_plans:
+        for current in current_plan:
+            solution_type,solution_exec = current.split(':')
+            if '数据库' in solution_type:
+                solution_prompt = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，针对以下问题，生成相应的sql指令:\n" + solution_exec
+                solution_prompt = solution_prompt.strip()
+                solution_output = get_output(solution_prompt)
+                #solution_output = "select `企业名称`,`企业类型`,`产业` from `企业数据` where  城市 like '%景德%' limit 10;"
+                solution_data = zhishiku.zsk[1]['zsk'].find_by_sql(solution_output)
+                if solution_data:
+                    is_break = True
+                    break
+            if '搜索引擎' in solution_type:
+                solution_prompt = solution_exec
+                solution_data = zhishiku.zsk[0]['zsk'].find(solution_prompt)
+                if not solution_data:
+                    solution_data = zhishiku.zsk[1]['zsk'].find_by_sql(solution_prompt)
+                    if len(solution_data) > 0:
+                        zhishiku.zsk[1]['zsk'].save(solution_prompt,solution_prompt,solution_data,'','')
+                        print('save mysql successfully')
+                if solution_data:
+                    is_break = True
+                    break
+        if is_break:
+            break
+    return solution_data
+def build_question_and_context(question,data:pd.DataFrame,format_str='markdown'):
+    question_context = ''
+    if isinstance(data,list):
+        data = pd.DataFrame(data)
+    if  data.empty:
+        return question
+    if format_str == 'markdown':
+        question_context = data.to_markdown() + '\n' + question
+    return question_context
+def generate_answer(solution_data,prompt,current_plan):
+    """
+    "{'获取数据': ['从企业数据库中获取数据:获取位于景德镇珠山的企业,>给出企业名称，企业类型,产业', '查询搜索引擎:烟台企业'], '生成答案': [\"'从上述>列表中，选出企业列表'\"], '评价答案': []}"
+    {'获取数据': [['从企业数据库中获取数据:北京专精特新企业的企业名称，产业，企业类型'], ['查询搜索引擎:北京专精特新企业']], '生成答案': ['获取答案的前缀', '将答案和前缀进行组合输出'], '评价答案': []}
+    """
+    if isinstance(solution_data,list):
+        solution_data = pd.DataFrame(solution_data)
+    prefix = None
+    answer = None
+    for current in current_plan:
+        if '从上述列表中' in current:
+        #if 'query_llm' in current:
+            context_question = build_question_and_context(prompt,solution_data)
+            solution_prompt = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团>队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，请结合给定的数据,解决以下问题:\n' + context_question
+            answer = get_output(solution_prompt)
+            if not answer:
+                raise ValueError('没有获得答案，抛出异常，让生成式模型来获取答案')
+        #if '获取答案的前缀' in current:
+        if '前缀' in current:
+            solution_prompt = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，针对以下问题，生成相应的回答前缀:\n' + prompt
+            prefix = get_output(solution_prompt)
+            if not prefix:
+                raise ValueError('没有获得答案，抛出异常，让生成式模型来获取答案')
+        if '将答案和前缀进行组合输出' in current:
+            if not prefix:
+                 raise ValueError('没有获得答案，抛出异常，让生成式模型来获取答案')
+            else:
+                if len(solution_data) == 1 and len(solution_data.columns) == 1:
+                    import ipdb
+                    ipdb.set_trace()
+                    answer = prefix + solution_data.to_string(index=False,header=False)
+                else:
+                    answer = prefix + '\n' + solution_data.to_string(index=False)
+    #else:
+    #    for token in answer.split('\n'):
+    #        current_content += token + '\n'
+    #        time.sleep(0.005)
+    #        yield current_content
+    return answer
+# delay 表示延迟1s再试；backoff表示每延迟一次，增加2s，max_delay表示增加到120s就不再增加； tries=3表示最多试3次
+@retry(delay=8, backoff=4, max_delay=22,tries=2)
+def completion_with_backoff(**kwargs):
+    try:
+        return  openai.ChatCompletion.create(**kwargs)
+    except Exception as e:
+        #import ipdb
+        #ipdb.set_trace()
+        print(e)
+
+        #import ipdb
+        #ipdb.set_trace()
+        dm = DelataMessage()
+        if "maximum context length is 8192 tokens" in str(e):
+            print('maximum exceed,deal ok')
+            content= '历史记录过多，超过规定长度，请清空历史记录'
+            setattr(dm,'content',content)
+            chunk=[{'choices':[{'finish_reason':'continue','delta':dm,'content':content}]}]
+            return chunk
+        if "Name or service not known" in str(e):
+            print('域名设置有问题，请排查服务器域名')
+            content = '域名设置有问题，请排查服务器域名'
+            setattr(dm,'content',content)
+            #chunk=[{'choices':[{'finish_reason':'continue','delta':{'content':dm}}]}]
+            chunk=[{'choices':[{'finish_reason':'continue','delta':dm,'content':content}]}]
+            return chunk
+        raise e  
+def transform_openai2llama2(history_formatted):
+    PROMPT_TEMPLATE = (
+            "[INST] <<SYS>>\n"
+            "You are a helpful assistant. 你是一个乐于助人的助手。\n"
+            "<</SYS>>\n\n{instruction} [/INST]"
+        )
+    if history_formatted is not None:
+        for i, old_chat in enumerate(history_formatted):
+            if old_chat['role'] == "user":
+                history_data.append(
+                    {"role": "user", "content": old_chat['content']},)
+            elif old_chat['role'] == "AI" or old_chat['role'] == 'assistant':
+                history_data.append(
+                    {"role": "assistant", "content": old_chat['content']},)
+    history_data.append({"role": "user", "content": prompt},)
+#def chat_one(prompt, history_formatted, max_length, top_p, temperature, data):
+def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_receive_data,zhishiku=False,chanyeku=False):
+    history_data = [ {"role": "system", "content": "You are a helpful assistant."}]
+   
+        
+    if history_formatted is not None:
+        for i, old_chat in enumerate(history_formatted):
+            if old_chat['role'] == "user":
+                history_data.append(
+                    {"role": "user", "content": old_chat['content']},)
+            elif old_chat['role'] == "AI" or old_chat['role'] == 'assistant':
+                history_data.append(
+                    {"role": "assistant", "content": old_chat['content']},)
+    history_data.append({"role": "user", "content": prompt},)
+    content = ''.join([x['content'] for x in history_data])
+    if len(content) > 7000:
+        #import ipdb
+        #ipdb.set_trace()
+        history_data = []
+        history_data.append({"role": "user", "content": prompt},)
+        if len(prompt) > 8000:
+            raise ValueError('最长只能支持8000个字符，不要超标')
+
+    plan_question = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，针对以下问题，生成相应的解决问题的计划与步骤:\n' + prompt
+    plan_question = plan_question.strip()
+    output = get_output(plan_question)
+    #import ipdb
+    #ipdb.set_trace()
+    try:
+        """
+"{'获取数据': ['从企业数据库中获取数据:获取位于景德镇珠山的企业,>给出企业名称，企业类型,产业', '查询搜索引擎:烟台企业'], '生成答案': [\"'从上述>列表中，选出企业列表'\"], '评价答案': []}"
+    {'获取数据': [['从企业数据库中获取数据:北京专精特新企业的企业名称，产业，企业类型'], ['查询搜索引擎:北京专精特新企业']], '生成答案': ['获取答案的前缀', '将答案和前缀进行组合输出'], '评价答案': []}
+        """
+        xy = 2/0 
+        output = eval(output)
+        steps = ['获取数据','生成答案','评价答案']
+        solution_data = ''
+        for step in steps: 
+            current_plan = output[step]
+            if step == '获取数据':
+                solution_data = get_solution_data(current_plan,zhishiku)
+            if step == '生成答案':
+                import ipdb
+                ipdb.set_trace()
+                answer = generate_answer(solution_data,prompt,current_plan)
+                current_content = ''
+                for token in answer.split('\n'):
+                    current_content += token + '\n'
+                    time.sleep(0.005)
+                    yield current_content
+    except Exception as e:
+        print(e)
+        #import ipdb
+        #ipdb.set_trace()
+        response = completion_with_backoff(model="gpt-4-0613", messages=history_data, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+        #response = completion_with_backoff(kwargs)
+        resTemp=""
+        #import ipdb
+        #ipdb.set_trace()
+        for chunk in response:
+            #print(chunk)
+            if chunk['choices'][0]["finish_reason"]!="stop":
+                if hasattr(chunk['choices'][0]['delta'], 'content'):
+                    resTemp+=chunk['choices'][0]['delta']['content']
+                    yield resTemp
+
+
+chatCompletion = None
+
+
+def load_model():
+    #openai.api_key = os.getenv("OPENAI_API_KEY")
+    #openai.api_key = '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'
+    #openai.api_key = 'sk-YR2Mtp2ht8u0ruHQ1058B5996dFc40C190B22774D5Bc7964'#测试用
+    openai.api_key = 'sk-cRujJbZqefFoj5753c8d94B8F7654c57807cCc3b145aC547'
+    #openai.api_key = 'fk217408-4KdxNeEDSjmll43jQ0ItKVKmjhkvi7xH'
+    openai.api_base = settings.llm.api_host
+
+class Lock:
+    def __init__(self):
+        pass
+
+    def get_waiting_threads(self):
+        return 0
+
+    def __enter__(self): 
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb): 
+        pass

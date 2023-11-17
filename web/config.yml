@@ -2,8 +2,8 @@ logging: False
 #日志
 logging_path: "sqlite:///../record.db?check_same_thread=False"
 # 日志地址 可以连接远程mysql服务器：'mysql+pymysql://root:123456@localhost:3306/db?charset=utf8'
-port: 17860
-#port: 17862
+#port: 17860
+port: 17862
 #webui 默认启动端口号"
 library:
    #strategy: "calc:2 rtst:2 agents:0"
@@ -175,7 +175,8 @@ llm_models:
       strategy: "cuda fp16"
    llama:
       #path: "model/stable-vicuna-13B.ggml.q4_2.bin"
-      path: "/devdata/home/user/panyongcan/Project/llama.cpp/zh-models/33B/ggml-model-q4_0.bin"
+      #path: "/devdata/home/user/panyongcan/Project/llama.cpp/zh-models/33B/ggml-model-q4_0.bin"
+      path: "/devdata/home/user/panyongcan/Project/llama.cpp/llama2/13B/ggml-model-q4_0.bin"
       #llama模型位置
       strategy: "Q4_0"       #cpp:运行方式，设置strategy诸如"Q8_0"即可开启
       n_gpu_layers: 60
@@ -189,10 +190,19 @@ llm_models:
    openai:
       #   api_host: "https://gpt.lucent.blog/v1" #网友的反代
       #api_host: "https://api.openai.com/v1" #官方地址
-      api_host: "https://api.gptjk.top/v1" #官方地址
+      #api_host: "https://api.gptjk.top/v1" #官方地址
       #api_host: "https://openai.api2d.net/v1" #官方地址
       #api_host: "http://10.0.0.20:19327/v1" #rwkv runner
-      #api_host: "http://10.0.0.12:8000/v1" #rwkv runner
+      api_host: "http://10.0.0.12:8000/v1" #rwkv runner
+      # https://api2d.com/wiki/doc
+      #api_key: "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"
+   zhixing:
+      #   api_host: "https://gpt.lucent.blog/v1" #网友的反代
+      #api_host: "https://api.openai.com/v1" #官方地址
+      #api_host: "https://api.gptjk.top/v1" #官方地址
+      #api_host: "https://openai.api2d.net/v1" #官方地址
+      #api_host: "http://10.0.0.20:19327/v1" #rwkv runner
+      api_host: "http://10.0.0.12:8000/v1" #rwkv runner
       # https://api2d.com/wiki/doc
       api_key: "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"
 
