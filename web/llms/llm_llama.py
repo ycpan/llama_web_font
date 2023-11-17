@@ -62,60 +62,59 @@ You are a helpful assistant. 你是一个乐于助人的助手。请你提供>�
 #你是一个产业专家，请回答{question}。下面的文本可能会对问题形成干扰，请判断下述文本对回答是否有帮助，如果有帮助请结合下述内容进行回答问题；如果没有帮助，请忽略。
 #请选择性的使用上述文本，结合和问题相关的内容，请回答{question},尽量减少重复表达。
 zhishiku_prompt = PromptTemplate(template=zhishiku_template, input_variables=["question","context"])
-# Defined a QueueCallback, which takes as a Queue object during initialization. Each new token is pushed to the queue.
-#class QueueCallback(BaseCallbackHandler):
-#    """Callback handler for streaming LLM responses to a queue."""
-#
-#    def __init__(self, q):
-#        self.q = q
-#
-#    def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
-#        self.q.put(token)
-#
-#    def on_llm_end(self, *args, **kwargs: Any) -> None:
-#        return self.q.empty()
-#
-#
-## Create a function that will return our generator
-#def mystream(input_text) -> Generator:
-#
-#    # Create a Queue
-#    q = Queue()
-#    job_done = object()
-#
-#    # Initialize the LLM we'll be using
-#    #llm = OpenAI(
-#    #    streaming=True, 
-#    #    callbacks=[QueueCallback(q)], 
-#    #    temperature=0
-#    #)
-#    llm = LlamaCpp(
-#        model_path=settings.llm.path, callbacks=[QueueCallback(q)], verbose=True, n_gpu_layers=settings.llm.n_gpu_layers,n_ctx=n_ctx, n_batch=n_batch,max_tokens=n_ctx,temperature=0.2,client='Alpaca'
-#        #model_path="/devdata/home/user/panyongcan/Project/llama.cpp/zh-models/7B/ggml-model-q4_0.bin", callbacks=[QueueCallback(q)], verbose=True, n_gpu_layers=n_gpu_layers,n_ctx=n_ctx, n_batch=n_batch,max_tokens=1024,temperature=0.2,client='Alpaca'
-#        #model_path="/devdata/home/user/panyongcan/Project/llama.cpp/zh-models/33B/ggml-model-q4_0.bin", callbacks=[QueueCallback(q)], verbose=True, n_gpu_layers=n_gpu_layers, n_batch=n_batch,max_tokens=1024,temperature=0.2,client='Alpaca'
-#        )
-#
-#    # Create a funciton to call - this will run in a thread
-#    def task():
-#        resp = llm(input_text)
-#        q.put(job_done)
-#
-#    # Create a thread and start the function
-#    t = Thread(target=task)
-#    t.start()
-#
-#    content = ""
-#
-#    # Get each new token from the queue and yield for our generator
-#    while True:
-#        try:
-#            next_token = q.get(True, timeout=1)
-#            if next_token is job_done:
-#                break
-#            content += next_token
-#            yield next_token, content
-#        except Empty:
-#            continue
+DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant. 你是一个乐于助人的助手。"""
+
+TEMPLATE_WITH_SYSTEM_PROMPT = (
+    "[INST] <<SYS>>\n"
+    "{system_prompt}\n"
+    "<</SYS>>\n\n"
+    "{instruction} [/INST]"
+)
+
+TEMPLATE_WITHOUT_SYSTEM_PROMPT = "[INST] {instruction} [/INST]"
+
+def generate_prompt(instruction, response="", with_system_prompt=True, system_prompt=None):
+    if with_system_prompt is True:
+        if system_prompt is None:
+            system_prompt = DEFAULT_SYSTEM_PROMPT
+        prompt = TEMPLATE_WITH_SYSTEM_PROMPT.format_map({'instruction': instruction,'system_prompt': system_prompt})
+    else:
+        prompt = TEMPLATE_WITHOUT_SYSTEM_PROMPT.format_map({'instruction': instruction})
+    if len(response)>0:
+        prompt += " " + response
+    return prompt
+
+def generate_completion_prompt(instruction: str):
+    """Generate prompt for completion"""
+    return generate_prompt(instruction, response="", with_system_prompt=True)
+
+
+def generate_chat_prompt(messages: list):
+    """Generate prompt for chat completion"""
+
+    system_msg = None
+    for msg in messages:
+        #if msg.role == 'system':
+        if msg['role'] == 'system':
+            #system_msg = msg.content
+            system_msg = msg['content']
+    prompt = ""
+    is_first_user_content = True
+    for msg in messages:
+        if msg['role'] == 'system':
+            continue
+        if msg['role'] == 'user':
+            if is_first_user_content is True:
+                #prompt += generate_prompt(msg.content, with_system_prompt=True, system_prompt=system_msg)
+                prompt += generate_prompt(msg['content'], with_system_prompt=True, system_prompt=system_msg)
+                is_first_user_content = False
+            else:
+                #prompt += '<s>'+generate_prompt(msg.content, with_system_prompt=False)
+                prompt += '<s>'+generate_prompt(msg['content'], with_system_prompt=False)
+        if msg['role'] == 'assistant' or msg['role'] == 'ai':
+                #prompt += f" {msg.content}"+"</s>"
+                prompt += f" {msg['content']}"+"</s>"
+    return prompt
 if settings.llm.strategy.startswith("Q"):
     runtime = "cpp"
 
@@ -134,158 +133,17 @@ if settings.llm.strategy.startswith("Q"):
 
 
     def chat_one(question, history_formatted, max_length, top_p, temperature,data, zhishiku=False,chanyeku=False):
-        def generate_prompt(instruction):
-            #return f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.
-            
-        ### Instruction:
-        #{instruction}
-        
-        ### Response: """
-            return f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.
-        {instruction}
-        """
-        #import ipdb
-        #ipdb.set_trace()
-        #if zhishiku:
-        #    prompt=history_formatted+"%s\nAssistant: "%prompt
-        #else:
-        #    #prompt=history_formatted+"Human: %s\nAssistant: "%prompt
-        #    prompt=history_formatted+generate_prompt(prompt)
-        #stream = model(prompt,
-        #stop=["Human:","### Hum","### Instruction:"], temperature=temperature,max_tokens=max_length, top_p=top_p,stream=True,model='Alpaca')
-        #stop=["Human:","### Hum","### Instruction:"], temperature=0.2,max_tokens=1024, stream=True,model='Alpaca')
-        # print(output['choices'])
-        #text=""
-        #for output in stream:
-        #    text+=output["choices"][0]["text"]
-        #    yield text
-        #question = "北京市的产业特点"
-        #prompt = PromptTemplate(template=template, input_variables=["question"])
-        #import ipdb
-        #ipdb.set_trace()
-        myprompt = prompt.format(question=question)
-        #output = model.llm.predict(myprompt)
-        #plan_question = '你是一个问题解决专家，请生成相应的计划与步骤\n' + question
-        #plan_question = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，请解决以下问题:\n' + question
-        plan_question = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，请解决以下问题:\n' + question
-        plan_question = plan_question.strip()
-        output = get_output(plan_question)
-        #output = get_output_v1(question)
-        print('规划\n' + output)
-        #pattern = r"Step(\d+):\s+(.*?)\n``(.*?)``"
-        zhishiku_content = ''
-        #import ipdb
-        #ipdb.set_trace()
-        answer = ''
-        if '专利' in question:
-            answer=output
-        #else 'select' in output:
-        #else:
-        elif 'Step' in output:
-            #pattern = r"Step(\d+):(.*?)\n(.*?):``(.*?)``"
-            pattern = r'Step(\d+):(.*?):\n``(.*?)``'
-            matches = re.findall(pattern, output, re.DOTALL)
-            #for step,thought,exec_type,exec_content in matches:
-            for step,exec_type,exec_content in matches:
-                if exec_type == 'exec queryDB':
-                    try:
-                        content = zhishiku.zsk[1]['zsk'].find_by_sql(exec_content)
-                    except Exception as e:
-                        content = []
-                        print('捕获到异常:{}'.format(e))
-                    answer = pd.DataFrame(content)
-                    print('数据库获取')
-                    print(answer)
-
-                    #if len(answer) == 0:
-                    #    answer = '我是一个AI模型，我没有这方面的详细数据，不能回答你的问题'
-                        #myprompt = zhishiku_prompt.format(question=question,context=content)
-                        #mystream = model.stream(myprompt)
-                        #for next_token, content in mystream:
-                        #    yield content
-                    if len(answer) > 0:
-                        #answer = answer.to_markdown()
-                        #answer = answer.to_string(index=False)
-                        answer.index = answer.index + 1
-                        answer = answer.to_string(index=True,header=False)
-                        answer = answer.replace('\n','<br />\n')
-                        break
-                    else:
-                        answer = ''
-                    #current_content = ''
-                    #for token in answer.split('\n'):
-                    #    current_content += token
-                    #    time.sleep(0.005)
-                    #    yield current_content
-                    #zhishiku_content = answer
-                if exec_type == 'exec queryApp':
-                    #import ipdb
-                    #ipdb.set_trace()
-                    answer = ''
-                    try:
-                        data = chanyeku.chanye(exec_content)
-                        answer = data
-                        answer = answer.replace('\n','<br />\n')
-                        break
-                    except Exception as e:
-                        print(e)
-                if exec_type == 'exec queryWEB':
-                    zhishiku_context = zhishiku.zsk[1]['zsk'].find(exec_content)
-                    #import ipdb
-                    #ipdb.set_trace()
-                    #zhishiku_context = zhishiku.zsk[1]['zsk'].find(question)
-                    if not zhishiku_context:
-                        zhishiku_context = zhishiku.zsk[0]['zsk'].find(exec_content)
-                        if len(zhishiku_context) > 0:
-                            zhishiku.zsk[1]['zsk'].save(exec_content,exec_content,zhishiku_context,'','')
-                            print('save mysql successfully')
-                    if len(zhishiku_context) > 0:
-                        myprompt = zhishiku_prompt.format(question=exec_content,context=zhishiku_context)
-                        #mystream = model.stream(myprompt)
-                        #for next_token, content in mystream:
-                        #    yield content
-                        break
-                if exec_type == 'extract db content':
-                    new_question = exec_content
-                    if len(zhishiku_content.split('\n')) < 2:
-                        continue
-                    else:
-                        new_qu = zhishiku_content[0:3500] + '\n' + new_question + '，在答案中不要出现从上表可以看出字样'
-                        #new_qu = zhishiku_content[0:3500] + '\n' + '上表是{},请将上述表格复制输出，然后回答{}'.format(matches[2][2],question) + '，在答案中不要出现从上表可以看出字样'
-                        myprompt = prompt.format(question=new_qu)
-                        #myprompt = zhishiku_prompt.format(question=question,context=zhishiku_content)
-                        #model.llm1.stream(myprompt)
-                        
-                        #for content in model.llm1.stream(myprompt):
-                        #for next_token, content in model.stream1(myprompt):
-                        #    #current_content += content
-                        #    yield content
-                        break
-        elif 'llm' not in output:
-            answer = output
-        #else:
-        #myprompt = prompt.format(question=question)
-        #current_content = ''
-        #for content in model.llm1.stream(myprompt):
-        #    current_content += content
-        #    yield current_content
-        if answer.strip():
-            current_content = ''
-            for token in answer.split('\n'):
-                current_content += token + '\n'
-                time.sleep(0.005)
-                yield current_content
+        if isinstance(question, str):
+            prompt = generate_completion_prompt(question)
         else:
-            print('prompt\n' + myprompt)
-
-
-            mystream = model.stream(myprompt)
-            #for next_token, content in model.stream(myprompt):
-            for next_token, content in mystream:
-                #current_content += content
-                #yield content
-                yield content.replace('\n','<br />\n'),
-            #break
+            prompt = generate_chat_prompt(question)
+        mystream = model.stream(prompt)
+        #for next_token, content in model.stream(myprompt):
+        for next_token, content in mystream:
+            #current_content += content
+            #yield content
+            yield content.replace('\n','<br />\n'),
+        #break
             #mystream = model.llm1.stream(myprompt)
             #for next_token, content in mystream:
             #    yield content

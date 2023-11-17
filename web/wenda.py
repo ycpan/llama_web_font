@@ -320,8 +320,6 @@ async def websocket_endpoint(websocket: WebSocket):
     # await asyncio.sleep(5)
     try:
         data = await websocket.receive_json()
-        #import ipdb
-        #ipdb.set_trace()
         prompt = data.get('prompt')
         max_length = data.get('max_length')
         if max_length is None:
@@ -357,7 +355,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 time2sleep -= 1
         lock = Lock(level)
         async with lock:
-            print("\033[1;32m"+IP+":\033[1;31m"+prompt+"\033[1;37m")
+            if isinstance(prompt,str):
+                print("\033[1;32m"+IP+":\033[1;31m"+prompt+"\033[1;37m")
             try:
                 #for response in LLM.chat_one(prompt, history_formatted, max_length, top_p, temperature, data):
                 for response in LLM.chat_one(prompt, history_formatted, max_length, top_p, temperature, data, zhishiku,chanyeku=chanyeku):
