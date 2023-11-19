@@ -29,6 +29,8 @@ def find(search_query,step = 0):
     }
     conn.request("POST", "/search", payload, headers)
     res = conn.getresponse()
+    #import ipdb
+    #ipdb.set_trace()
     data = res.read()
     data=json.loads(data)
     clean_data = data['organic']
@@ -57,13 +59,16 @@ def get_content(res_li):
     len_str = 0
     for da in res_li:
         link = da['link']
-        article = g.extract(url=link)
-        title = article.title
-        cleaned_text = article.cleaned_text
-        len_str += len(title)
-        len_str += len(cleaned_text)
-        res.append(title)
-        res.append(cleaned_text)
+        try:
+            article = g.extract(url=link)
+            title = article.title
+            cleaned_text = article.cleaned_text
+            len_str += len(title)
+            len_str += len(cleaned_text)
+            res.append(title)
+            res.append(cleaned_text)
+        except Exception as e:
+            print(e)
         if len_str > 1500:
             break
     res =  '\n'.join(res)
