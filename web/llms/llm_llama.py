@@ -137,6 +137,7 @@ if settings.llm.strategy.startswith("Q"):
             prompt = generate_completion_prompt(question)
         else:
             prompt = generate_chat_prompt(question)
+        print(prompt)
         mystream = model.stream(prompt)
         #for next_token, content in model.stream(myprompt):
         for next_token, content in mystream:
