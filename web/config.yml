@@ -176,7 +176,8 @@ llm_models:
    llama:
       #path: "model/stable-vicuna-13B.ggml.q4_2.bin"
       #path: "/devdata/home/user/panyongcan/Project/llama.cpp/zh-models/33B/ggml-model-q4_0.bin"
-      path: "/devdata/home/user/panyongcan/Project/llama.cpp/llama2/13B/ggml-model-q4_0.bin"
+      #path: "/devdata/home/user/panyongcan/Project/llama.cpp/llama2/13B/ggml-model-q4_0.bin"
+      path: "/devdata/home/user/panyongcan/Project/llama.cpp/llama2/7B/ggml-model-q4_0.bin"
       #llama模型位置
       strategy: "Q4_0"       #cpp:运行方式，设置strategy诸如"Q8_0"即可开启
       n_gpu_layers: 60
