@@ -2,6 +2,8 @@ import http.client
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 import json
 import os
+import fitz
+import docx
 from goose3 import Goose
 from goose3.text import StopWordsChinese
 from sklearn.metrics.pairwise import cosine_similarity
@@ -21,17 +23,37 @@ def read_txt_file(file_path):
     f = open(file_path,'r')
     data = f.readlines()
     return data
+def read_doc_file(file_path):
+    res = []
+    doc = docx.Document(file_path)
+    for para in doc.paragraphs:
+        txt = para.text
+        res.append(txt)
+    return res
+def read_pdf_file(file_path):
+    res = []
+    doc = fitz.open(file_path) # open a document
+    for page in doc: # iterate the document pages
+        #text = page.get_text().encode("utf8") # get plain text (is in UTF-8)
+        text = page.get_text()
+        res.append(text)
+    return res
 def get_clean_data():
     res = []
     for file_name in os.listdir(document_path):
+        data = []
         file_path = os.path.join(document_path,file_name)
         if 'txt' in file_path[-4:]: 
             data = read_txt_file(file_path)
-            res.extend(data)
+        if 'pdf' in file_path[-4:]: 
+            data = read_pdf_file(file_path)
+        if 'doc' in file_path[-4:]: 
+            data = read_doc_file(file_path)
+        res.extend(data)
     return '\n'.join(res)
 
 clean_data = get_clean_data()
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=25,separators=["\n\n", "\n","。","\r","\u3000"])
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=25,separators=["\n\n", "\n","。","\r","\u3000"])
 #texts = text_splitter.split_documents(content)
 content_li = text_splitter.split_text(clean_data)
 document_embedding = hf_embeddings.embed_documents(content_li)
@@ -73,7 +95,7 @@ def get_content(res_li):
             res.append(cleaned_text)
         except Exception as e:
             print(e)
-        if len_str > 1500:
+        if len_str > 6000:
             break
     res =  '\n'.join(res)
     return res
@@ -92,11 +114,11 @@ def get_related_content(query,content):
     #content_li = content.split('。')
     #import ipdb
     #ipdb.set_trace()
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=25,separators=["\n\n", "\n","。","\r","\u3000"])
-    #texts = text_splitter.split_documents(content)
-    content = clean_text(content)
-    content_li = text_splitter.split_text(content)
-    content_li.append(query)
+    #text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=25,separators=["\n\n", "\n","。","\r","\u3000"])
+    ##texts = text_splitter.split_documents(content)
+    #content = clean_text(content)
+    #content_li = text_splitter.split_text(content)
+    #content_li.append(query)
     query_embedding = hf_embeddings.embed_documents([query])
     #embedding = hf_embeddings.embed_documents(content_li)
     #score = cosine_similarity([embedding[-1]],embedding[0:-1])
@@ -106,6 +128,9 @@ def get_related_content(query,content):
     res = ['']*len(content_li)
     len_str = 0
     for idx in idxs:
+        s = score[0][idx]
+        if s < 0.72:
+            continue
         sub_content = content_li[idx]
         if not sub_content:
             continue
@@ -114,7 +139,7 @@ def get_related_content(query,content):
         len_str += len(sub_content)
         res[idx]=sub_content
         #if len_str > 1000:
-        if len_str > 1500:
+        if len_str > 6000:
             break
     final_res = []
     #len_res = len(res)

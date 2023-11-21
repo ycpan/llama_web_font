@@ -69,7 +69,8 @@ def get_content(res_li):
             res.append(cleaned_text)
         except Exception as e:
             print(e)
-        if len_str > 1500:
+        #if len_str > 1500:
+        if len_str > 12000:
             break
     res =  '\n'.join(res)
     return res
@@ -80,7 +81,7 @@ def get_related_content(query,content):
         for txt in content.split('\n'):
             if not txt:
                 continue
-            if len(txt) < 50:
+            if len(txt) < 5:
                 continue
             res.append(txt.strip())
         return '\n'.join(res)
@@ -99,7 +100,12 @@ def get_related_content(query,content):
     idxs = idxs[0][::-1]
     res = ['']*len(content_li)
     len_str = 0
+    #import ipdb
+    #ipdb.set_trace()
     for idx in idxs:
+        s = score[0][idx]
+        if s < 0.75:
+            continue
         sub_content = content_li[idx]
         if not sub_content:
             continue
@@ -108,8 +114,9 @@ def get_related_content(query,content):
         len_str += len(sub_content)
         res[idx]=sub_content
         #if len_str > 1000:
-        if len_str > 1500:
-            break
+        #if len_str > 1500:
+        #if len_str > 8500:
+        #    break
     final_res = []
     #len_res = len(res)
     for idx,txt in enumerate(res):
@@ -124,7 +131,8 @@ def get_related_content(query,content):
 
     res = '\n\n'.join(final_res)
     #res = '\n'.join(res)
-    return res[0:1700]
+    #return res[0:1700]
     #return res[0:2500]
+    return res[0:8700]
 
 

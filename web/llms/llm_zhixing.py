@@ -7,7 +7,9 @@ import pandas as pd
 from retry import retry
 from .llm_remote import get_output
 from .llm_remote import get_ws_stream_content
+from .llm_remote import get_ws_content
 from plugins.common import settings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 
 def chat_init(history):
@@ -40,7 +42,8 @@ def get_solution_data(current_plans,zhishiku):
             if '数据库' in solution_type:
                 solution_prompt = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，针对以下问题，生成相应的sql指令:\n" + solution_exec
                 solution_prompt = solution_prompt.strip()
-                solution_output = get_output(solution_prompt)
+                #solution_output = get_output(solution_prompt)
+                solution_output = get_ws_content(solution_prompt)
                 #solution_output = "select `企业名称`,`企业类型`,`产业` from `企业数据` where  城市 like '%景德%' limit 10;"
                 #import ipdb
                 #ipdb.set_trace()
@@ -57,12 +60,19 @@ def get_solution_data(current_plans,zhishiku):
                 solution_data = zhishiku.zsk[1]['zsk'].find(solution_prompt)
                 #import ipdb
                 #ipdb.set_trace()
+                #if not solution_data:
+                #    solution_data = zhishiku.zsk[2]['zsk'].find(solution_prompt)
+                #    if len(solution_data) > 0:
+                #        zhishiku.zsk[1]['zsk'].save(solution_prompt,solution_prompt,solution_data,'','')
+                #        print('save {} mysql successfully'.format(solution_prompt))
                 if not solution_data:
                     solution_data = zhishiku.zsk[0]['zsk'].find(solution_prompt)
                     if len(solution_data) > 0:
                         zhishiku.zsk[1]['zsk'].save(solution_prompt,solution_prompt,solution_data,'','')
                         print('save {} mysql successfully'.format(solution_prompt))
                 if solution_data:
+
+                    #text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=25,separators=["\n\n", "\n","。","\r","\u3000"])
                     is_break = True
                     break
         if is_break:
@@ -79,6 +89,7 @@ def build_question_and_context(question,data:pd.DataFrame,format_str='markdown')
     return question_context
 def get_answer_with_context(prompt,context_data,history_data):
     solution_prompt = context_data + '\n' + prompt
+    #solution_prompt = context_data + '\n' + '上述文本是和问题相关的文本，请精确的回答下述问题,回答内容中不要出现"根据文本提供的内容"等类似字样:\n' + prompt
     solution_prompt = solution_prompt.strip()
     if history_data:
         history_data.append({"role": "user", "content": solution_prompt})
@@ -103,13 +114,15 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku):
             context_question = build_question_and_context(prompt,solution_data)
             context_question = context_question.strip()
             solution_prompt = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团>队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，请结合给定的数据,解决以下问题:\n' + context_question
-            answer = get_output(solution_prompt)
+            #answer = get_output(solution_prompt)
+            answer = get_ws_content(solution_prompt)
             if not answer:
                 raise ValueError('没有获得答案，抛出异常，让生成式模型来获取答案')
         if '获取答案的前缀' in current:
         #if '前缀' in current:
             solution_prompt = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，针对以下问题，生成相应的回答前缀:\n' + prompt
-            prefix = get_output(solution_prompt)
+            #prefix = get_output(solution_prompt)
+            prefix = get_ws_content(solution_prompt)
             print('prefix:' + prefix)
             #import ipdb
             #ipdb.set_trace()
@@ -222,16 +235,17 @@ def transform_openai2llama2(history_formatted):
 #def chat_one(prompt, history_formatted, max_length, top_p, temperature, data):
 def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_receive_data,zhishiku=False,chanyeku=False):
     history_data = [ {"role": "system", "content": "You are a helpful assistant. 你是一个乐于助人的助手。\n"}]
+    #history_data = [ {"role": "system", "content": "You are a helpful assistant. 你是一个乐于助人的助手。请你提供专业、有逻辑、内容真实、有价值的详细回复。\n"}]
    
         
     #history_data = []
-    #daici = ['以上','这','那','上述','继续','再']
-    #is_multi_turn = False
-    #for dai in daici:
-    #    if dai in prompt:
-    #        is_multi_turn = True
-    #if not is_multi_turn:
-    #    history_formatted = []
+    daici = ['以上','这','那','上述','继续','再']
+    is_multi_turn = False
+    for dai in daici:
+        if dai in prompt:
+            is_multi_turn = True
+    if not is_multi_turn:
+        history_formatted = []
 
     #import ipdb
     #ipdb.set_trace()
@@ -260,13 +274,16 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
     #ipdb.set_trace()
     #history_data = transform_openai2llama2(history_data)
     print(history_data)
+    #import ipdb
+    #ipdb.set_trace()
     prompt = prompt.strip()
     plan_question = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，针对以下问题，生成相应的解决问题的计划与步骤:\n' + prompt
     #plan_question = plan_question.strip()
     plan_history_data = copy.deepcopy(history_data)
     plan_history_data.append({"role":"user","content":plan_question})
     #output = get_output(plan_question)
-    output = get_output(plan_history_data)
+    #output = get_output(plan_history_data)
+    output = get_ws_content(plan_history_data)
     solution_data = ''
     #import ipdb
     #ipdb.set_trace()
@@ -279,6 +296,8 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
         output = eval(output)
         solution_data = ''
         print(output)
+        #import ipdb
+        #ipdb.set_trace()
         steps = ['获取数据','生成答案','评价答案']
         solution_data = ''
         for step in steps: 

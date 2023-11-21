@@ -6,8 +6,8 @@ from retry import retry
 from websocket import create_connection
 from plugins.common import settings
 
-api_endpoint = "http://10.0.0.20:19327/v1/completions"
-#api_endpoint = "http://10.0.0.12:19327/v1/completions"
+#api_endpoint = "http://10.0.0.20:19327/v1/completions"
+api_endpoint = "http://10.0.0.12:19327/v1/completions"
 #api_endpoint = "http://10.0.0.12:8000/v1/completions"
 access_token = "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"
 
@@ -46,7 +46,7 @@ def get_ws_content(data):
     """
     这个接口支持ws，但不支持stream模式
     """
-    ws = create_connection("ws://127.0.0.1:"+str(17862)+"/ws")
+    ws = create_connection("ws://127.0.0.1:"+str(17861)+"/ws")
     if isinstance(data,str):
         data = {'prompt':data,'history':[]}
     if isinstance(data,list):
@@ -59,10 +59,12 @@ def get_ws_content(data):
             result = ws.recv()
             if len(result) > 0:
                 temp_result = result
-    except:
+    except Exception as e:
+        #print(e)
         pass
     ws.close()
-    return json.dumps({"response": temp_result},ensure_ascii=False)
+    #data = json.dumps({"response": temp_result},ensure_ascii=False)
+    return temp_result
 
 def get_ws_stream_content(data):
     """
@@ -87,12 +89,13 @@ def get_ws_stream_content(data):
                     is_generate_normal = False
                 if is_generate_normal:
                     yield "%s\n\n" % json.dumps({"response": result},ensure_ascii=False)
-    except:
+    except Exception as e:
+        print(e)
         #import ipdb
         #ipdb.set_trace()
         pass
-    yield "data: %s\n\n" % "[DONE]"
     ws.close()
+    yield "data: %s\n\n" % "[DONE]"
 # delay 表示延迟1s再试；backoff表示每延迟一次，增加2s，max_delay表示增加到120s就不再增加； tries=3表示最多试3次
 @retry(delay=8, backoff=4, max_delay=22,tries=2)
 def completion_with_backoff(**kwargs):
