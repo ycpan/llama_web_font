@@ -120,7 +120,10 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku):
                 raise ValueError('没有获得答案，抛出异常，让生成式模型来获取答案')
         if '获取答案的前缀' in current:
         #if '前缀' in current:
-            solution_prompt = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，针对以下问题，生成相应的回答前缀:\n' + prompt
+            #solution_prompt = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，针对以下问题，生成相应的回答前缀:\n' + prompt
+            idx = prompt.find('企业')
+            new_prompt = prompt[0:idx+2]
+            solution_prompt = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，请结合给定的数据,解决以下问题:\n' + new_prompt
             #prefix = get_output(solution_prompt)
             prefix = get_ws_content(solution_prompt)
             print('prefix:' + prefix)
