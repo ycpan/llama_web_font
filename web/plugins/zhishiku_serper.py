@@ -6,6 +6,7 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 import pdfplumber
 import docx
+import fitz
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 import json
 import os
@@ -36,25 +37,31 @@ hf_embeddings = HuggingFaceEmbeddings(
 #                f.write(chunk)
 #    return local_filename
 def extract_pdf_content(pdf_filename):
-    with pdfplumber.open(pdf_filename) as pdf:
-        return '\n'.join(page.extract_text() for page in pdf.pages if page.extract_text())
+    #with pdfplumber.open(pdf_filename) as pdf:
+    #    return '\n'.join(page.extract_text() for page in pdf.pages if page.extract_text())
+    res = []
+    with fitz.open(pdf_filename) as doc:
+        for page in doc: # iterate the document pages
+            text = page.get_text()
+            res.append(text)
+    return '\n'.join(res)
 def extract_docx_content(docx_filename):
     doc = docx.Document(docx_filename)
     return '\n'.join(p.text for p in doc.paragraphs)
-async def download_file(session, url):
+async def download_file(session, url,timeout=3):
     local_filename = url.split('/')[-1]
-    async with session.get(url) as response:
+    async with session.get(url,timeout=timeout) as response:
         if response.status == 200:
             f = await aiofiles.open(local_filename, mode='wb')
             await f.write(await response.read())
             await f.close()
             return local_filename
-async def fetch(session, url):
-    async with session.get(url) as response:
+async def fetch(session, url,timeout=2):
+    async with session.get(url,timeout=timeout) as response:
         return await response.text()
 
-async def download_and_extract_file(session, file_link):
-    filename = await download_file(session, file_link)
+async def download_and_extract_file(session, file_link,timeout=3):
+    filename = await download_file(session, file_link,timeout)
     article_text = ''
     if filename:
         if filename.endswith('.pdf'):
@@ -72,9 +79,9 @@ async def parse_article(url):
             article_text = ''
             if url.endswith('.pdf') or url.endswith('.docx'):
                 #filename = await download_file(session,url)
-                article_text = await download_and_extract_file(session, url)
+                article_text = await download_and_extract_file(session, url,3)
             else:
-                html = await fetch(session, url)
+                html = await fetch(session, url,2)
                 #print(html)
                 #g = Goose()
                 g = Goose({'target_language':'zh_cn','browser_user_agent': 'Version/5.1.2 Safari/534.52.7','stopwords_class': StopWordsChinese})
@@ -89,7 +96,7 @@ async def parse_article(url):
                             file_link = urljoin(url, link['href'])
                             print('pdf or word in html')
                             print(file_link)
-                            article_text = await download_and_extract_file(session, file_link)
+                            article_text = await download_and_extract_file(session, file_link,3)
                             if len(article_text) > 200:
                                 break
                             #task = asyncio.create_task(download_and_extract_file(session, file_link))
@@ -103,6 +110,8 @@ async def parse_article(url):
             # 在这里处理异常，例如记录日志、返回一个默认值等
             return None  # 或者您想返回的任何东西
         #return article.cleaned_text
+        if len(article_text) < 50:
+            article_text = ''
         return article_text
 
 async def mymain(urls):

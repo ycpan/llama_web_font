@@ -318,8 +318,34 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     waiting_threads += 1
     # await asyncio.sleep(5)
+    import base64
     try:
         data = await websocket.receive_json()
+        if 'task_type' in data and data['task_type'] == "transfile_file":
+            index=data['content'].find(',')
+            encoded_data = data['content'][index+1:]
+            decoded_data = base64.b64decode(encoded_data)
+            f = open('test.doc','wb')
+            f.write(decoded_data)
+            f.close()
+            await websocket.send_text("学习已经完成")
+            await websocket.close()
+            return ""
+        #import ipdb
+        #ipdb.set_trace()
+        # {'file_path': '', 'file_path_time': '', 'question': '北京市今年发展情况怎么样'}
+        #{'file_path': '', 'file_path_time': '', 'question': '北京市今年发展情况详解', 'history': [{'question': '北京市今年发展情况详解', 'answer': "错误'role'"}, {'question': '北京市今年发展情况怎么样', 'answer': '错误'}]}
+        if 'question' in data:
+            if 'prompt' not in data:
+                data['prompt'] = data['question']
+            if 'history' in data:
+                #import ipdb
+                #ipdb.set_trace()
+                print(1)
+            
+
+        if 'history' not in data:
+            data['history'] = []
         prompt = data.get('prompt')
         max_length = data.get('max_length')
         if max_length is None:
@@ -336,8 +362,6 @@ async def websocket_endpoint(websocket: WebSocket):
         level = data.get('level')
         if level is None:
             level = 3
-        #import ipdb
-        #ipdb.set_trace()
         history = data.get('history')
         history_formatted = LLM.chat_init(history)
         response = ''
@@ -379,6 +403,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 session.add(jl)
                 session.commit()
         print(response)
+        websocket.send_text("[DONE]"+ error)
         await websocket.close()
     except WebSocketDisconnect:
         pass

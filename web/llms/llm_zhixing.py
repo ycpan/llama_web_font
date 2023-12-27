@@ -40,7 +40,8 @@ def get_solution_data(current_plans,zhishiku):
             solution_type,solution_exec = current.split(':')
             solution_exec = solution_exec.strip()
             if '数据库' in solution_type:
-                solution_prompt = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，针对以下问题，生成相应的sql指令:\n" + solution_exec
+                #solution_prompt = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，针对以下问题，生成相应的sql指令:\n" + solution_exec
+                solution_prompt = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，请解决以下问题:\n" + solution_exec
                 solution_prompt = solution_prompt.strip()
                 #solution_output = get_output(solution_prompt)
                 solution_output = get_ws_content(solution_prompt)
@@ -60,11 +61,11 @@ def get_solution_data(current_plans,zhishiku):
                 solution_data = zhishiku.zsk[1]['zsk'].find(solution_prompt)
                 #import ipdb
                 #ipdb.set_trace()
-                #if not solution_data:
-                #    solution_data = zhishiku.zsk[2]['zsk'].find(solution_prompt)
-                #    if len(solution_data) > 0:
-                #        zhishiku.zsk[1]['zsk'].save(solution_prompt,solution_prompt,solution_data,'','')
-                #        print('save {} mysql successfully'.format(solution_prompt))
+                if not solution_data:
+                    solution_data = zhishiku.zsk[2]['zsk'].find(solution_prompt)
+                    if len(solution_data) > 0:
+                        zhishiku.zsk[1]['zsk'].save(solution_prompt,solution_prompt,solution_data,'','')
+                        print('save {} mysql successfully'.format(solution_prompt))
                 if not solution_data:
                     solution_data = zhishiku.zsk[0]['zsk'].find(solution_prompt)
                     if len(solution_data) > 0:
@@ -241,14 +242,14 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
     #history_data = [ {"role": "system", "content": "You are a helpful assistant. 你是一个乐于助人的助手。请你提供专业、有逻辑、内容真实、有价值的详细回复。\n"}]
    
         
-    #history_data = []
-    daici = ['以上','这','那','上述','继续','再']
-    is_multi_turn = False
-    for dai in daici:
-        if dai in prompt:
-            is_multi_turn = True
-    if not is_multi_turn:
-        history_formatted = []
+    ##history_data = []
+    #daici = ['以上','这','那','上述','继续','再']
+    #is_multi_turn = False
+    #for dai in daici:
+    #    if dai in prompt:
+    #        is_multi_turn = True
+    #if not is_multi_turn:
+    #    history_formatted = []
 
     #import ipdb
     #ipdb.set_trace()
@@ -256,13 +257,17 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
     #history_formatted = history_formatted[-5:]
     if history_formatted is not None:
         for i, old_chat in enumerate(history_formatted):
-            if old_chat['role'] == "user":
-                history_data.append(
-                    {"role": "user", "content": old_chat['content']},)
-            elif old_chat['role'] == "AI" or old_chat['role'] == 'assistant':
-                if i > len(history_formatted) - 4:
+            if 'role' in old_chat:
+                if old_chat['role'] == "user":
                     history_data.append(
-                        {"role": "assistant", "content": old_chat['content']},)
+                        {"role": "user", "content": old_chat['content']},)
+                elif old_chat['role'] == "AI" or old_chat['role'] == 'assistant':
+                    if i > len(history_formatted) - 4:
+                        history_data.append(
+                            {"role": "assistant", "content": old_chat['content']},)
+            else:
+                history_data.append({"role":"user","content":old_chat["question"]})
+                history_data.append({"role":"assistant","content":old_chat["answer"]})
     #history_data.append({"role": "user", "content": prompt})
     content = ''.join([x['content'] for x in history_data])
     if len(content) > 7000:
@@ -276,7 +281,6 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
     #import ipdb
     #ipdb.set_trace()
     #history_data = transform_openai2llama2(history_data)
-    print(history_data)
     #import ipdb
     #ipdb.set_trace()
     prompt = prompt.strip()
@@ -284,6 +288,7 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
     #plan_question = plan_question.strip()
     plan_history_data = copy.deepcopy(history_data)
     plan_history_data.append({"role":"user","content":plan_question})
+    print(history_data)
     #output = get_output(plan_question)
     #output = get_output(plan_history_data)
     output = get_ws_content(plan_history_data)
@@ -297,6 +302,7 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
         """
         #xy = 2/0 
         output = eval(output)
+        #output['获取数据']=[['搜索引擎:{}'.format(prompt)]]
         solution_data = ''
         print(output)
         #import ipdb
