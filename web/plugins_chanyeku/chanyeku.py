@@ -17,5 +17,11 @@ def chanye(content_type):
     #if 'zhenduan' in chanye_type:
     #content_type = 'get_chanyezhenduan(烟台)'
     chanye = eval(content_type)
+    """
+    func = eval(func)
+    f = map(func,[{'wd':'烟台'}]
+    news = list(f)
+    return news[0]
+    """
     return chanye
 

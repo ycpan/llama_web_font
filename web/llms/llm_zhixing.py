@@ -56,9 +56,13 @@ def get_solution_data(current_plans,zhishiku,chanyeku):
                         continue
                     is_break = True
                     break
-            #import ipdb
-            #ipdb.set_trace()
             if '使用工具' in solution_type:
+                li = solution_exec.split('\t')
+                fun,paramater = li[0],li[1:]
+                #paramater = [str(x)  for x in paramater ]
+                paramater = ",".join([f"'{x}'" if isinstance(x,str) else str(x) for x in paramater])
+                #fun,paramater = solution_exec.split('\t')
+                solution_exec = fun + '(' + f'{paramater}' + ')'
                 solution_data = chanyeku.chanye(solution_exec)
                 if solution_data:
                     is_break = True
@@ -156,13 +160,13 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku):
             history_data.append({"role": "user", "content": prompt})
             answer = get_ws_stream_content(history_data)
         if '将答案和模型进行结合' in current or '将答案与模型进行结合' in current:
-            if isinstance(solution_data,str) and len(solution_data) > 200:
+            #if isinstance(solution_data,str) and len(solution_data) > 200:
                 #answer = get_answer_with_context(prompt,solution_data,history_data)
-                answer = get_answer_with_context(prompt,solution_data,[])
-            else:
-                solution_data = get_web_data(prompt,zhishiku)
-                #answer = get_answer_with_context(prompt,solution_data,history_data)
-                answer = get_answer_with_context(prompt,solution_data,[])
+            answer = get_answer_with_context(prompt,solution_data,[])
+            #else:
+            #    solution_data = get_web_data(prompt,zhishiku)
+            #    #answer = get_answer_with_context(prompt,solution_data,history_data)
+            #    answer = get_answer_with_context(prompt,solution_data,[])
     #else:
     #else:
     #    for token in answer.split('\n'):
