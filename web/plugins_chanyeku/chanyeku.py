@@ -10,8 +10,8 @@ from .chanye_jiegou import get_chanyejiegou
 from .chanye_youshi import get_chanyeyoushi
 from .chanye_ruoshi import get_chanyeruoshi
 from .chanye_jianyi import get_chanyejianyi
-from .web_tools import get_weather
-from .web_tools import get_baidu_news
+from .web_tools import get_weather as get_tianqi
+from .web_tools import get_baidu_news as get_xinwen
 def chanye(content_type):
     chanye = None
     #if 'zhenduan' in chanye_type:

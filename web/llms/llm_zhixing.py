@@ -32,7 +32,7 @@ def get_web_data(solution_prompt,zhishiku):
     if solution_data:
         return solution_data
     return ''
-def get_solution_data(current_plans,zhishiku):
+def get_solution_data(current_plans,zhishiku,chanyeku):
     solution_data = ''
     is_break = False
     for current_plan in current_plans:
@@ -56,21 +56,27 @@ def get_solution_data(current_plans,zhishiku):
                         continue
                     is_break = True
                     break
+            #import ipdb
+            #ipdb.set_trace()
+            if '使用工具' in solution_type:
+                solution_data = chanyeku.chanye(solution_exec)
+                if solution_data:
+                    is_break = True
             if '搜索引擎' in solution_type:
                 solution_prompt = solution_exec
-                solution_data = zhishiku.zsk[1]['zsk'].find(solution_prompt)
+                #solution_data = zhishiku.zsk[1]['zsk'].find(solution_prompt)
                 #import ipdb
                 #ipdb.set_trace()
                 if not solution_data:
                     solution_data = zhishiku.zsk[2]['zsk'].find(solution_prompt)
-                    if len(solution_data) > 0:
-                        zhishiku.zsk[1]['zsk'].save(solution_prompt,solution_prompt,solution_data,'','')
-                        print('save {} mysql successfully'.format(solution_prompt))
+                    #if len(solution_data) > 0:
+                    #    zhishiku.zsk[1]['zsk'].save(solution_prompt,solution_prompt,solution_data,'','')
+                    #    print('save {} mysql successfully'.format(solution_prompt))
                 if not solution_data:
                     solution_data = zhishiku.zsk[0]['zsk'].find(solution_prompt)
-                    if len(solution_data) > 0:
-                        zhishiku.zsk[1]['zsk'].save(solution_prompt,solution_prompt,solution_data,'','')
-                        print('save {} mysql successfully'.format(solution_prompt))
+                    #if len(solution_data) > 0:
+                    #    zhishiku.zsk[1]['zsk'].save(solution_prompt,solution_prompt,solution_data,'','')
+                    #    print('save {} mysql successfully'.format(solution_prompt))
                 if solution_data:
 
                     #text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=25,separators=["\n\n", "\n","。","\r","\u3000"])
@@ -89,7 +95,8 @@ def build_question_and_context(question,data:pd.DataFrame,format_str='markdown')
         question_context = data.to_markdown() + '\n' + question
     return question_context
 def get_answer_with_context(prompt,context_data,history_data):
-    solution_prompt = context_data + '\n' + prompt
+    #solution_prompt = context_data + '\n\n,从上述文本中，精确的选取有用的部分，回答下面的问题\n' + prompt
+    solution_prompt = context_data + ' ' + prompt
     #solution_prompt = context_data + '\n' + '上述文本是和问题相关的文本，请精确的回答下述问题,回答内容中不要出现"根据文本提供的内容"等类似字样:\n' + prompt
     solution_prompt = solution_prompt.strip()
     if history_data:
@@ -290,8 +297,10 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
     plan_history_data.append({"role":"user","content":plan_question})
     print(history_data)
     #output = get_output(plan_question)
-    #output = get_output(plan_history_data)
-    output = get_ws_content(plan_history_data)
+    #import ipdb
+    #ipdb.set_trace()
+    output = get_output(plan_history_data)
+    #output = get_ws_content(plan_history_data)
     solution_data = ''
     #import ipdb
     #ipdb.set_trace()
@@ -309,35 +318,59 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
         #ipdb.set_trace()
         steps = ['获取数据','生成答案','评价答案']
         solution_data = ''
-        for step in steps: 
-            current_plan = output[step]
-            if step == '获取数据':
-                #import ipdb
-                #ipdb.set_trace()
-                solution_data = get_solution_data(current_plan,zhishiku)
-            if step == '生成答案':
-                answer = generate_answer(solution_data,prompt,current_plan,history_data,zhishiku)
-                if answer is None:
-                    raise ValueError('answer为None，抛出异常')
-                if isinstance(answer,str):
-                    current_content = ''
-                    for token in answer.split('\n'):
-                        current_content += token + '\n'
-                        time.sleep(0.05)
-                        #yield current_content
-                        yield current_content.replace('\n','<br />\n')
-                else:
-                    for chunk in answer:
-                        #print(chunk)
-                        #if chunk['choices'][0]["finish_reason"]!="stop":
-                        #    if hasattr(chunk['choices'][0]['delta'], 'content'):
-                        #        resTemp+=chunk['choices'][0]['delta']['content']
-                        #        yield resTemp
-                        if '[DONE]' in chunk:
-                            continue
-                        if len(chunk) > 2:
-                            chunk = json.loads(chunk)
-                            yield chunk["response"].replace('\n','<br />\n')
+        if output["type"] == "llm":
+            response = get_ws_stream_content(prompt)
+            #if not solution_data:
+            #    solution_data = get_web_data(prompt,zhishiku)
+            #response = get_answer_with_context(prompt,solution_data,history_data)
+            #response = completion_with_backoff(kwargs)
+            resTemp=""
+            for chunk in response:
+                if '[DONE]' in chunk:
+                    continue
+                if len(chunk) > 2:
+                    chunk = json.loads(chunk)
+                    yield chunk["response"].replace('\n','<br />\n')
+        if output["type"] == "answer":
+            response = output["content"]
+            curr = ''
+            for chunk in list(response):
+                curr += chunk
+                time.sleep(0.05)
+                yield curr.replace('\n','<br />\n')
+        #import ipdb
+        #ipdb.set_trace()
+        if output["type"] == "step" or output["type"]== "tools" or output["type"]== "plan":
+            output = output['content']
+            for step in steps: 
+                current_plan = output[step]
+                if step == '获取数据':
+                    #import ipdb
+                    #ipdb.set_trace()
+                    solution_data = get_solution_data(current_plan,zhishiku,chanyeku)
+                if step == '生成答案':
+                    answer = generate_answer(solution_data,prompt,current_plan,history_data,zhishiku)
+                    if answer is None:
+                        raise ValueError('answer为None，抛出异常')
+                    if isinstance(answer,str):
+                        current_content = ''
+                        for token in answer.split('\n'):
+                            current_content += token + '\n'
+                            time.sleep(0.05)
+                            #yield current_content
+                            yield current_content.replace('\n','<br />\n')
+                    else:
+                        for chunk in answer:
+                            #print(chunk)
+                            #if chunk['choices'][0]["finish_reason"]!="stop":
+                            #    if hasattr(chunk['choices'][0]['delta'], 'content'):
+                            #        resTemp+=chunk['choices'][0]['delta']['content']
+                            #        yield resTemp
+                            if '[DONE]' in chunk:
+                                continue
+                            if len(chunk) > 2:
+                                chunk = json.loads(chunk)
+                                yield chunk["response"].replace('\n','<br />\n')
     except Exception as e:
         print(e)
         #response = completion_with_backoff(model="gpt-4-0613", messages=history_data, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)

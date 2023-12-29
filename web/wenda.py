@@ -342,6 +342,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 #import ipdb
                 #ipdb.set_trace()
                 print(1)
+                data['history'] = []
             
 
         if 'history' not in data:
@@ -403,7 +404,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 session.add(jl)
                 session.commit()
         print(response)
-        websocket.send_text("[DONE]"+ error)
+        #websocket.send_text("[DONE]"+ error)
         await websocket.close()
     except WebSocketDisconnect:
         pass
