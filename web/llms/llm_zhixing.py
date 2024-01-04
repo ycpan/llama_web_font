@@ -60,7 +60,12 @@ def get_solution_data(current_plans,zhishiku,chanyeku):
                 li = solution_exec.split('\t')
                 fun,paramater = li[0],li[1:]
                 #paramater = [str(x)  for x in paramater ]
-                paramater = ",".join([f"'{x}'" if isinstance(x,str) else str(x) for x in paramater])
+                if fun == 'python eval':
+                    paramater = paramater[0]
+                    solution_data = eval(paramater)
+                    break
+                else:
+                    paramater = ",".join([f"'{x}'" if isinstance(x,str) else str(x) for x in paramater])
                 #fun,paramater = solution_exec.split('\t')
                 solution_exec = fun + '(' + f'{paramater}' + ')'
                 solution_data = chanyeku.chanye(solution_exec)
@@ -143,6 +148,11 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku):
             #ipdb.set_trace()
             if not prefix:
                 raise ValueError('没有获得答案，抛出异常，让生成式模型来获取答案')
+        if '直接作为答案输出' in current:
+            if solution_data:
+                answer = str(solution_data)
+            else:
+                answer = get_ws_stream_content(history_data)
         if '将答案和前缀进行组合输出' in current:
             if not prefix:
                  raise ValueError('没有获得答案，抛出异常，让生成式模型来获取答案')
@@ -342,8 +352,6 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
                 curr += chunk
                 time.sleep(0.05)
                 yield curr.replace('\n','<br />\n')
-        #import ipdb
-        #ipdb.set_trace()
         if output["type"] == "step" or output["type"]== "tools" or output["type"]== "plan":
             output = output['content']
             for step in steps: 
