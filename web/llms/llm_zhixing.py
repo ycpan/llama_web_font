@@ -2,12 +2,14 @@ import os
 import time
 import json
 import copy
+import numpy as np
 import openai
 import pandas as pd
 from retry import retry
-from .llm_remote import get_output
-from .llm_remote import get_ws_stream_content
-from .llm_remote import get_ws_content
+from .llm_remote import get_dev_agent_output as get_agent
+from .llm_remote import get_prod_stream_llm as get_stream_llm
+from .llm_remote import get_prod_llm as get_llm
+#from .llm_remote import get_prod_agent as get_agent
 from plugins.common import settings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
@@ -32,68 +34,127 @@ def get_web_data(solution_prompt,zhishiku):
     if solution_data:
         return solution_data
     return ''
-def get_solution_data(current_plans,zhishiku,chanyeku):
-    solution_data = ''
-    is_break = False
-    for current_plan in current_plans:
-        for current in current_plan:
-            solution_type,solution_exec = current.split(':')
-            solution_exec = solution_exec.strip()
-            if '数据库' in solution_type:
-                #solution_prompt = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，针对以下问题，生成相应的sql指令:\n" + solution_exec
-                solution_prompt = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，请解决以下问题:\n" + solution_exec
-                solution_prompt = solution_prompt.strip()
-                #solution_output = get_output(solution_prompt)
-                solution_output = get_ws_content(solution_prompt)
-                #solution_output = "select `企业名称`,`企业类型`,`产业` from `企业数据` where  城市 like '%景德%' limit 10;"
-                #import ipdb
-                #ipdb.set_trace()
-                print(solution_exec + ':' + solution_output)
-                solution_data = zhishiku.zsk[1]['zsk'].find_by_sql(solution_output)
+def exec_step(current_plan,zhishiku,chanyeku):
+    try:
+        current_li = current_plan.split(':')
+        solution_type= current_li[0]
+        solution_exec = ','.join(current_li[1:])
+        solution_exec = solution_exec.strip()
+        #import ipdb
+        #ipdb.set_trace()
+        current_bak_data = None
+        if 'llm' in solution_type:
+            answer = get_llm(solution_exec)
+            solution_data = answer
+            #solution_data_res.append({solution_exec:solution_data})
+            current_bak_data = {solution_exec:solution_data}
+            #break
+        if '数据库' in solution_type:
+            solution_prompt = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，针对以下问题，生成相应的sql指令:\n" + solution_exec
+            #solution_prompt = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，请解决以下问题:\n" + solution_exec
+            solution_prompt = solution_prompt.strip()
+            solution_output = get_agent(solution_prompt)
+            #solution_output = get_agent(solution_prompt)
+            #solution_output = "select `企业名称`,`企业类型`,`产业` from `企业数据` where  城市 like '%景德%' limit 10;"
+            print(solution_exec + ':' + solution_output)
+            solution_data = zhishiku.zsk[1]['zsk'].find_by_sql(solution_output)
+            solution_data_df = pd.DataFrame(solution_data)
+            if solution_data:
+                if len(solution_data) == 1 and ('0' in str(solution_data) or 'None' in str(solution_data)):
+                    solution_bak_data = ''
+                    #continue
+                #is_break = True
+                if '企业数量' in solution_data_df:
+                    #solution_data = solution_data_df['企业数量'][0]
+                    solution_bak_data = solution_data_df['企业数量'][0]
+
+                #solution_data_res.append({solution_exec:solution_data})
+                solution_bak_data = {solution_exec:solution_bak_data}
+                #break
+        if '使用工具' in solution_type:
+            li = solution_exec.split('\t')
+            fun,paramater = li[0],li[1:]
+            #paramater = [str(x)  for x in paramater ]
+            if fun == 'python eval':
+                paramater = paramater[0]
+                solution_data = eval(paramater)
                 if solution_data:
-                    if len(solution_data) == 1 and ('0' in str(solution_data) or 'None' in str(solution_data)):
-                        solution_data = ''
-                        continue
-                    is_break = True
-                    break
-            if '使用工具' in solution_type:
-                li = solution_exec.split('\t')
-                fun,paramater = li[0],li[1:]
-                #paramater = [str(x)  for x in paramater ]
-                if fun == 'python eval':
-                    paramater = paramater[0]
-                    solution_data = eval(paramater)
-                    break
-                else:
-                    paramater = ",".join([f"'{x}'" if isinstance(x,str) else str(x) for x in paramater])
+                    #solution_data_res.append({solution_exec:solution_data})
+                    #break
+                    solution_bak_data = {solution_exec:solution_data}
+            else:
+                paramater = ",".join([f"'{x}'" if isinstance(x,str) else str(x) for x in paramater])
                 #fun,paramater = solution_exec.split('\t')
                 solution_exec = fun + '(' + f'{paramater}' + ')'
                 solution_data = chanyeku.chanye(solution_exec)
                 if solution_data:
-                    is_break = True
-            if '搜索引擎' in solution_type:
-                solution_prompt = solution_exec
-                #solution_data = zhishiku.zsk[1]['zsk'].find(solution_prompt)
-                #import ipdb
-                #ipdb.set_trace()
-                if not solution_data:
-                    solution_data = zhishiku.zsk[2]['zsk'].find(solution_prompt)
-                    #if len(solution_data) > 0:
-                    #    zhishiku.zsk[1]['zsk'].save(solution_prompt,solution_prompt,solution_data,'','')
-                    #    print('save {} mysql successfully'.format(solution_prompt))
-                if not solution_data:
-                    solution_data = zhishiku.zsk[0]['zsk'].find(solution_prompt)
-                    #if len(solution_data) > 0:
-                    #    zhishiku.zsk[1]['zsk'].save(solution_prompt,solution_prompt,solution_data,'','')
-                    #    print('save {} mysql successfully'.format(solution_prompt))
-                if solution_data:
+                    #is_break = True
+                    #solution_data_res.append({solution_exec:solution_data})
+                    solution_bak_data = {solution_exec:solution_data}
+                    #break
+        if '搜索引擎' in solution_type:
+            solution_prompt = solution_exec
+            #solution_data = zhishiku.zsk[1]['zsk'].find(solution_prompt) #mysql 缓存
+            #import ipdb
+            #ipdb.set_trace()
+            #if not solution_data:
+            #    solution_data = zhishiku.zsk[2]['zsk'].find(solution_prompt) #文档
+                #if len(solution_data) > 0:
+                #    zhishiku.zsk[1]['zsk'].save(solution_prompt,solution_prompt,solution_data,'','')
+                #    print('save {} mysql successfully'.format(solution_prompt))
+            #if not solution_data:
+            solution_data = zhishiku.zsk[0]['zsk'].find(solution_prompt) #搜索引擎
+                #if len(solution_data) > 0:
+                #    zhishiku.zsk[1]['zsk'].save(solution_prompt,solution_prompt,solution_data,'','')
+                #    print('save {} mysql successfully'.format(solution_prompt))
+            if solution_data:
 
-                    #text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=25,separators=["\n\n", "\n","。","\r","\u3000"])
-                    is_break = True
-                    break
-        if is_break:
-            break
-    return solution_data
+                #text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=25,separators=["\n\n", "\n","。","\r","\u3000"])
+                #is_break = True
+                #break
+                #solution_data_res.append({solution_exec:solution_data})
+                solution_bak_data = {solution_exec:solution_data}
+                #break
+        return solution_bak_data
+    except Exception  as e:
+        return []
+def get_solution_data(current_plans,zhishiku,chanyeku):
+    solution_data = ''
+    #is_break = False
+    #solution_data_res = []
+    solution_add_data = []
+    #import ipdb
+    #ipdb.set_trace()
+    for current_add_plan in current_plans:
+        current_update_data = None
+        if isinstance(current_add_plan,list):
+            for current_update_plan in current_add_plan:
+                current_bak_data = None
+                if isinstance(current_update_plan,list):
+                    for current_bak_plan in current_update_plan:
+                        solution_data = exec_step(current_bak_plan,zhishiku,chanyeku)
+                        if solution_data:
+                            current_bak_data = solution_data
+                            break
+                    if not solution_data:
+                        print('current_bak_data should be empty,flag1')
+                else:
+                    current_bak_data = exec_step(current_bak_plan,zhishiku,chanyeku)
+                    if not solution_data:
+                        print('current_bak_data should be empty,flag2')
+
+            current_update_data = current_bak_data
+        else:
+            current_update_data = exec_step(current_update_plan,zhishiku,chanyeku)
+        solution_add_data.append(current_update_data)
+                #solution_update_data = solution_bak_data
+            #solution_add_data.append(solution_update_data)
+
+        #if is_break:
+        #    break
+    #return solution_data
+    #return solution_data_res
+    return solution_add_data
 def build_question_and_context(question,data:pd.DataFrame,format_str='markdown'):
     question_context = ''
     if isinstance(data,list):
@@ -105,6 +166,8 @@ def build_question_and_context(question,data:pd.DataFrame,format_str='markdown')
     return question_context
 def get_answer_with_context(prompt,context_data,history_data):
     #solution_prompt = context_data + '\n\n,从上述文本中，精确的选取有用的部分，回答下面的问题\n' + prompt
+    if not isinstance(context_data,str):
+        context_data = str(context_data)
     solution_prompt = context_data + ' ' + prompt
     #solution_prompt = context_data + '\n' + '上述文本是和问题相关的文本，请精确的回答下述问题,回答内容中不要出现"根据文本提供的内容"等类似字样:\n' + prompt
     solution_prompt = solution_prompt.strip()
@@ -112,8 +175,8 @@ def get_answer_with_context(prompt,context_data,history_data):
         history_data.append({"role": "user", "content": solution_prompt})
         solution_prompt = history_data 
 
-    answer = get_ws_stream_content(solution_prompt)
-    #answer = get_ws_stream_content(history_data)
+    answer = get_stream_llm(solution_prompt)
+    #answer = get_stream_llm(history_data)
     return answer
 
 def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku):
@@ -121,8 +184,8 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku):
     "{'获取数据': ['从企业数据库中获取数据:获取位于景德镇珠山的企业,>给出企业名称，企业类型,产业', '查询搜索引擎:烟台企业'], '生成答案': [\"'从上述>列表中，选出企业列表'\"], '评价答案': []}"
     {'获取数据': [['从企业数据库中获取数据:北京专精特新企业的企业名称，产业，企业类型'], ['查询搜索引擎:北京专精特新企业']], '生成答案': ['获取答案的前缀', '将答案和前缀进行组合输出'], '评价答案': []}
     """
-    if isinstance(solution_data,list):
-        solution_data = pd.DataFrame(solution_data)
+    #if isinstance(solution_data,list):
+    #    solution_data = pd.DataFrame(solution_data)
     prefix = None
     answer = None
     for current in current_plan:
@@ -131,8 +194,8 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku):
             context_question = build_question_and_context(prompt,solution_data)
             context_question = context_question.strip()
             solution_prompt = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团>队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，请结合给定的数据,解决以下问题:\n' + context_question
-            #answer = get_output(solution_prompt)
-            answer = get_ws_content(solution_prompt)
+            answer = get_agent(solution_prompt)
+            #answer = get_agent(solution_prompt)
             if not answer:
                 raise ValueError('没有获得答案，抛出异常，让生成式模型来获取答案')
         if '获取答案的前缀' in current:
@@ -141,22 +204,28 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku):
             idx = prompt.find('企业')
             new_prompt = prompt[0:idx+2]
             solution_prompt = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，请结合给定的数据,解决以下问题:\n' + new_prompt
-            #prefix = get_output(solution_prompt)
-            prefix = get_ws_content(solution_prompt)
+            prefix = get_agent(solution_prompt)
+            #prefix = get_agent(solution_prompt)
             print('prefix:' + prefix)
             #import ipdb
             #ipdb.set_trace()
             if not prefix:
                 raise ValueError('没有获得答案，抛出异常，让生成式模型来获取答案')
+        if '将数据合并成一个字符串' in current:
+            solution_data = str(solution_data)
         if '直接作为答案输出' in current:
             if solution_data:
                 answer = str(solution_data)
             else:
-                answer = get_ws_stream_content(history_data)
+                answer = get_stream_llm(history_data)
+        if '将答案进行组合输出' in current:
+                answer = get_answer_with_context('将内容进行精炼，形成一段文本',str(solution_data),[])
         if '将答案和前缀进行组合输出' in current:
             if not prefix:
                  raise ValueError('没有获得答案，抛出异常，让生成式模型来获取答案')
             else:
+                if isinstance(solution_data,list):
+                    solution_data = pd.DataFrame(solution_data)
                 if isinstance(solution_data,pd.DataFrame):
                     if len(solution_data) == 1 and len(solution_data.columns) == 1: 
                         answer = prefix + solution_data.to_string(index=False,header=False)
@@ -168,7 +237,7 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku):
                         answer = get_answer_with_context(prompt,solution_data,[])
         if '直接将问题送给模型' in current:
             history_data.append({"role": "user", "content": prompt})
-            answer = get_ws_stream_content(history_data)
+            answer = get_stream_llm(history_data)
         if '将答案和模型进行结合' in current or '将答案与模型进行结合' in current:
             #if isinstance(solution_data,str) and len(solution_data) > 200:
                 #answer = get_answer_with_context(prompt,solution_data,history_data)
@@ -211,52 +280,97 @@ def completion_with_backoff(**kwargs):
             chunk=[{'choices':[{'finish_reason':'continue','delta':dm,'content':content}]}]
             return chunk
         raise e  
-def transform_openai2llama2(history_formatted):
-    FIRST_PROMPT_TEMPLATE = (
-            "<s>[INST] <<SYS>>\n"
-            "You are a helpful assistant. 你是一个乐于助人的助手。\n"
-            "<</SYS>>\n\n{instruction} [/INST] {response} </s>"
-        )
-    SECOND_PROMPT_TEMPLATE = (
-            "<s>[INST] {instruction} [/INST] {response} </s>"
-        )
-    res = []
-    prompt = ''
-    is_editored = False
-    if history_formatted is not None:
-        for i, old_chat in enumerate(history_formatted):
-            #if old_chat['role'] == "system":
-            #    sys_prompt = (
-            #" <<SYS>>\n"
-            #"You are a helpful assistant. 你是一个乐于助人的助手。\n"
-            #"<</SYS>>\n\n"
-            #    )
-            #    res.append(sys_prompt)
-            if i%2 == 0:
-                if i/2 == 0:
-                    prompt = FIRST_PROMPT_TEMPLATE
-                else:
-                    prompt = SECOND_PROMPT_TEMPLATE
-                is_editored = False
-
-            if old_chat['role'] == "user":
-                #history_data.append(
-                #    {"role": "user", "content": old_chat['content']},)
-                #user_prompt = (
-                prompt=prompt.replace('{instruction}',old_chat['content'])
-                is_editored = True
-            elif old_chat['role'] == "AI" or old_chat['role'] == 'assistant':
-                #history_data.append(
-                #    {"role": "assistant", "content": old_chat['content']},)
-                #prompt.format({'response':response})
-                prompt=prompt.replace('{response}',old_chat['content'])
-                is_editored = True
-            if i%2 == 1 and is_editored:
-                res.append(prompt)
-            if i == len(history_formatted) - 1 and is_editored:
-                prompt=prompt.replace('{response}','')
-                res.append(prompt)
-    return ''.join(res)
+#def transform_openai2llama2(history_formatted):
+#    FIRST_PROMPT_TEMPLATE = (
+#            "<s>[INST] <<SYS>>\n"
+#            "You are a helpful assistant. 你是一个乐于助人的助手。\n"
+#            "<</SYS>>\n\n{instruction} [/INST] {response} </s>"
+#        )
+#    SECOND_PROMPT_TEMPLATE = (
+#            "<s>[INST] {instruction} [/INST] {response} </s>"
+#        )
+#    res = []
+#    prompt = ''
+#    is_editored = False
+#    if history_formatted is not None:
+#        for i, old_chat in enumerate(history_formatted):
+#            #if old_chat['role'] == "system":
+#            #    sys_prompt = (
+#            #" <<SYS>>\n"
+#            #"You are a helpful assistant. 你是一个乐于助人的助手。\n"
+#            #"<</SYS>>\n\n"
+#            #    )
+#            #    res.append(sys_prompt)
+#            if i%2 == 0:
+#                if i/2 == 0:
+#                    prompt = FIRST_PROMPT_TEMPLATE
+#                else:
+#                    prompt = SECOND_PROMPT_TEMPLATE
+#                is_editored = False
+#
+#            if old_chat['role'] == "user":
+#                #history_data.append(
+#                #    {"role": "user", "content": old_chat['content']},)
+#                #user_prompt = (
+#                prompt=prompt.replace('{instruction}',old_chat['content'])
+#                is_editored = True
+#            elif old_chat['role'] == "AI" or old_chat['role'] == 'assistant':
+#                #history_data.append(
+#                #    {"role": "assistant", "content": old_chat['content']},)
+#                #prompt.format({'response':response})
+#                prompt=prompt.replace('{response}',old_chat['content'])
+#                is_editored = True
+#            if i%2 == 1 and is_editored:
+#                res.append(prompt)
+#            if i == len(history_formatted) - 1 and is_editored:
+#                prompt=prompt.replace('{response}','')
+#                res.append(prompt)
+#    return ''.join(res)
+def get_step_output(output,zhishiku,chanyeku,prompt,history_data,return_stream=True):
+    steps = ['获取数据','生成答案','评价答案']
+    #output_type = output["type"]
+    #output = output['content']
+    answer = None
+    if output["type"] == "llm":
+        answer = get_stream_llm(prompt)
+    if output["type"] == "answer":
+        answer = output["content"]
+    if output["type"] == "step" or output["type"]== "tools" or output["type"]== "plan":
+        output = output['content']
+        for step in steps: 
+            current_plan = output[step]
+            if step == '获取数据':
+                solution_data = get_solution_data(current_plan,zhishiku,chanyeku)
+            if step == '生成答案':
+                import ipdb
+                ipdb.set_trace()
+                answer = generate_answer(solution_data,prompt,current_plan,history_data,zhishiku)
+    if answer is None:
+        raise ValueError('answer为None，抛出异常')
+    if isinstance(answer,str):
+        #current_content = ''
+        #for token in answer.split('\n'):
+        #    current_content += token + '\n'
+        #    time.sleep(0.05)
+        #    #yield current_content
+        #    yield current_content.replace('\n','<br />\n')
+        return answer
+    else:
+        if return_stream:
+            return answer
+        else:
+            current_str = ''
+            for chunk in answer:
+                if '[DONE]' in chunk:
+                    continue
+                if len(chunk) > 2:
+                    chunk = json.loads(chunk)
+                    #yield chunk["response"].replace('\n','<br />\n')
+                    #current_str += chunk["response"] 
+                    current_str = chunk["response"] 
+            #import ipdb
+            #ipdb.set_trace()
+            return current_str
 #def chat_one(prompt, history_formatted, max_length, top_p, temperature, data):
 def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_receive_data,zhishiku=False,chanyeku=False):
     history_data = [ {"role": "system", "content": "You are a helpful assistant. 你是一个乐于助人的助手。\n"}]
@@ -310,11 +424,11 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
     plan_history_data = copy.deepcopy(history_data)
     plan_history_data.append({"role":"user","content":plan_question})
     print(history_data)
-    #output = get_output(plan_question)
+    #output = get_agent(plan_question)
     #import ipdb
     #ipdb.set_trace()
-    output = get_output(plan_history_data)
-    #output = get_ws_content(plan_history_data)
+    output = get_agent(plan_history_data)
+    #output = get_agent(plan_history_data)
     solution_data = ''
     #import ipdb
     #ipdb.set_trace()
@@ -333,7 +447,7 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
         steps = ['获取数据','生成答案','评价答案']
         solution_data = ''
         if output["type"] == "llm":
-            response = get_ws_stream_content(prompt)
+            response = get_stream_llm(prompt)
             #if not solution_data:
             #    solution_data = get_web_data(prompt,zhishiku)
             #response = get_answer_with_context(prompt,solution_data,history_data)
@@ -353,13 +467,30 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
                 time.sleep(0.05)
                 yield curr.replace('\n','<br />\n')
         if output["type"] == "step" or output["type"]== "tools" or output["type"]== "plan":
+            output_type = output["type"]
             output = output['content']
             for step in steps: 
                 current_plan = output[step]
                 if step == '获取数据':
                     #import ipdb
                     #ipdb.set_trace()
-                    solution_data = get_solution_data(current_plan,zhishiku,chanyeku)
+                    if output_type == 'plan':
+                        solution_datas = []
+                        for plan in current_plan:
+                            if not isinstance(plan,str):
+                                if isinstance(plan,list):
+                                    np_plan = np.array(plan)
+                                    plan = np_plan.squeeze().tolist() 
+                            plan_question = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，针对以下问题，生成相应的解决问题的计划与步骤:\n' + plan
+                            current_output = get_agent(plan_question)
+                            #import ipdb
+                            #ipdb.set_trace()
+                            current_output = eval(current_output)
+                            solution_data = get_step_output(current_output,zhishiku,chanyeku,prompt,history_data,return_stream=False)
+                            solution_datas.append(solution_data)
+                        solution_data = solution_datas
+                    else:
+                        solution_data = get_solution_data(current_plan,zhishiku,chanyeku)
                 if step == '生成答案':
                     answer = generate_answer(solution_data,prompt,current_plan,history_data,zhishiku)
                     if answer is None:
@@ -386,7 +517,7 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
     except Exception as e:
         print(e)
         #response = completion_with_backoff(model="gpt-4-0613", messages=history_data, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
-        #response = get_ws_stream_content(history_data)
+        #response = get_stream_llm(history_data)
         #import ipdb
         #ipdb.set_trace()
         if not solution_data:

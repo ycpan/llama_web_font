@@ -8,8 +8,8 @@ from langchain.llms import OpenAI
 from langchain.llms import LlamaCpp
 from langchain import PromptTemplate, LLMChain
 from langchain.callbacks.base import BaseCallbackHandler
-from .llm_remote import get_output
-from .llm_remote import get_output_v1
+#from .llm_remote import get_output
+#from .llm_remote import get_output_v1
 from typing import Any
 import re
 import time
@@ -133,17 +133,38 @@ if settings.llm.strategy.startswith("Q"):
 
 
     def chat_one(question, history_formatted, max_length, top_p, temperature,data, zhishiku=False,chanyeku=False):
+        #import ipdb
+        #ipdb.set_trace()
         if isinstance(question, str):
             prompt = generate_completion_prompt(question)
         else:
             prompt = generate_chat_prompt(question)
+        if len(prompt) > 6000:
+            raise ValueError('长度不能超过6000')
         print(prompt)
-        mystream = model.stream(prompt)
-        #for next_token, content in model.stream(myprompt):
-        for next_token, content in mystream:
-            #current_content += content
-            #yield content
-            yield content.replace('\n','<br />\n'),
+        #mystream = model.stream(prompt)
+        #import ipdb
+        #ipdb.set_trace()
+        #mystream = model(prompt,stop=["Human:","### Hum",], temperature=0.5,max_tokens=6000, top_p=0.9,top_k=40,stream=True)
+        #mystream = model(prompt,stop=["Human:","### Hum",], temperature=0.5,max_tokens=6000, top_p=0.9,top_k=40,stream=True,suffix=' [/INST]',prefix=' [INST] ')
+        #mystream = model(prompt, temperature=0.5,max_tokens=6000, top_p=0.9,top_k=40,stream=True,suffix=' [/INST]',prefix=' [INST] ')
+        #import ipdb
+        #ipdb.set_trace()
+        #mystream = model(prompt, temperature=0.5,max_tokens=6000, top_p=0.9,top_k=40,stream=True,suffix=' [/INST]')
+        #mystream = model(prompt, temperature=0.5,max_tokens=6000, top_p=0.9,top_k=40,stream=True)
+        #text=""
+        #for output in mystream:
+        #    text+=output["choices"][0]["text"].replace('\n','<br />\n')
+        #    yield text
+        text=""
+        for next_token in model.stream(prompt):
+            text+=next_token
+        #    #current_content += content
+        #    #yield content
+            #yield text.replace('\n','<br />\n')
+            yield text
+        #import ipdb
+        #ipdb.set_trace()
         #break
             #mystream = model.llm1.stream(myprompt)
             #for next_token, content in mystream:
@@ -205,16 +226,29 @@ if settings.llm.strategy.startswith("Q"):
 
     def load_model():
         global model
-        from llama_cpp import Llama
-        model = mymodel()
+        #from llama_cpp import Llama
+        from langchain.llms import LlamaCpp
+        #model = mymodel()
         
-        #try:
-        #    #import ipdb
-        #    #ipdb.set_trace()
-        #    cpu_count = int(settings.llm.strategy.split('->')[1])
-        #    model = Llama(model_path=settings.llm.path,use_mlock=True,n_ctx=4096,n_threads=cpu_count)
-        #except:
-        #    model = Llama(model_path=settings.llm.path,use_mlock=True,n_ctx=4096)
+        n_gpu_layers = 61  # Change this value based on your model and your GPU VRAM pool.
+        n_batch = 512# Should be between 1 and n_ctx, consider the amount of VRAM in your GPU.
+        try:
+            #import ipdb
+            #ipdb.set_trace()
+            #cpu_count = int(settings.llm.strategy.split('->')[1])
+            #model = Llama(model_path=settings.llm.path,use_mlock=True,n_ctx=4096,n_threads=cpu_count)
+            model = LlamaCpp(
+                #model_path="/devdata/home/user/panyongcan/Project/llama.cpp/llama2/13B-16K/ggml-model-q4_0.gguf",  verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=6000,temperature=0.5,top_k=40,top_p=0.9,max_tokens=6000,max_length=6000,suffix='[INST]',eps=1e-5,rope_freq_scale=0.25,use_mmap=False,cache=False
+                #model_path="/devdata/home/user/panyongcan/Project/llama.cpp/llama2/13B-16K/ggml-model-q4_0.gguf",  verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=6000,temperature=0.5,top_k=40,top_p=0.9,max_tokens=6000,max_length=6000,suffix=' [/INST]',eps=1e-5,rope_freq_scale=0.25,use_mmap=False,cache=False
+                model_path="/devdata/home/user/panyongcan/Project/llamacpp/dd/llama.cpp/llama2/13B_16K/ggml-model-q4_0.gguf",  verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=6000,temperature=0.5,top_k=40,top_p=0.9,max_tokens=6000,max_length=6000,suffix=' [/INST]',eps=1e-5,rope_freq_scale=0.25,use_mmap=False,cache=False
+                )
+        except:
+            #rope_freq_scale=0.25
+            #model = Llama(model_path=settings.llm.path,use_mlock=True,n_ctx=6000,n_gpu_layers=50,rope_freq_scale=0.25)
+            model = LlamaCpp(
+                #model_path="/devdata/home/user/panyongcan/Project/llama.cpp/llama2/13B-16K/ggml-model-q4_0.gguf",  verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=6000,temperature=0.5,top_k=40,top_p=0.9,max_tokens=6000,max_length=6000,suffix='[INST]',eps=1e-5,rope_freq_scale=0.25,use_mmap=False,cache=False
+                model_path="/devdata/home/user/panyongcan/Project/llamacpp/dd/llama.cpp/llama2/13B_16K/ggml-model-q4_0.gguf",  verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=6000,temperature=0.5,top_k=40,top_p=0.9,max_tokens=6000,max_length=6000,suffix=' [/INST]',eps=1e-5,rope_freq_scale=0.25,use_mmap=False,cache=False
+                )
 
 else:
     runtime = "torch"

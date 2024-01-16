@@ -11,7 +11,21 @@ api_endpoint = "http://10.0.0.20:19327/v1/completions"
 #api_endpoint = "http://10.0.0.12:8000/v1/completions"
 access_token = "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"
 
-def get_output(input_str):
+def get_dev_agent_output(input_str):
+    """
+    这个接口使用openai的协议，但是不支持stream
+    """
+    input_messages = { "prompt": input_str}
+    headers = {"Content-Type": "application/json",
+               #"Authorization": f"Bearer {access_token}"
+               }
+    response = requests.post(api_endpoint, headers=headers, json=input_messages)
+    if response.status_code == 200:
+        response_text = json.loads(response.text)["choices"][0]["text"]
+    else:
+        response_text = ''
+    return response_text
+def get_dev_llm_output(input_str):
     """
     这个接口使用openai的协议，但是不支持stream
     """
@@ -42,7 +56,7 @@ def get_output_v1(input_sentence):
     result = r.text
     return result
 
-def get_ws_content(data):
+def get_prod_agent(data):
     """
     这个接口支持ws，但不支持stream模式
     """
@@ -65,8 +79,61 @@ def get_ws_content(data):
     ws.close()
     #data = json.dumps({"response": temp_result},ensure_ascii=False)
     return temp_result
+def get_prod_llm(data):
+    """
+    这个接口支持ws，但不支持stream模式
+    """
+    ws = create_connection("ws://127.0.0.1:"+str(17862)+"/ws")
+    if isinstance(data,str):
+        data = {'prompt':data,'history':[]}
+    if isinstance(data,list):
+        data = {'prompt':data,'history':[]}
+    ws.send(json.dumps(data))
+    #response.content_type = "application/json"
+    temp_result = ''
+    try:
+        while True:
+            result = ws.recv()
+            if len(result) > 0:
+                temp_result = result
+    except Exception as e:
+        #print(e)
+        pass
+    ws.close()
+    #data = json.dumps({"response": temp_result},ensure_ascii=False)
+    return temp_result
 
-def get_ws_stream_content(data):
+def get_prod_stream_agent(data):
+    """
+    这个接口支持ws，但是能支持stream模式
+    """
+    ws = create_connection("ws://127.0.0.1:"+str(17862)+"/ws")
+    if isinstance(data,str):
+        data = {'prompt':data,'history':[]}
+    if isinstance(data,list):
+        data = {'prompt':data,'history':[]}
+    ws.send(json.dumps(data))
+    #import ipdb
+    #ipdb.set_trace()
+    try:
+        is_generate_normal = True
+        while True:
+            result = ws.recv()
+            if len(result) > 0:
+                #yield "data: %s\n\n" % json.dumps({"response": result})
+                if '</' in result or '[INST]' in result or '<s>' in result:
+                    #break
+                    is_generate_normal = False
+                if is_generate_normal:
+                    yield "%s\n\n" % json.dumps({"response": result},ensure_ascii=False)
+    except Exception as e:
+        print(e)
+        #import ipdb
+        #ipdb.set_trace()
+        pass
+    ws.close()
+    yield "data: %s\n\n" % "[DONE]"
+def get_prod_stream_llm(data):
     """
     这个接口支持ws，但是能支持stream模式
     """
