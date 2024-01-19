@@ -7,8 +7,11 @@ import openai
 import pandas as pd
 from retry import retry
 from .llm_remote import get_dev_agent_output as get_agent
-from .llm_remote import get_prod_stream_llm as get_stream_llm
-from .llm_remote import get_prod_llm as get_llm
+#from .llm_remote import get_prod_stream_llm as get_stream_llm
+#from .llm_remote import get_prod_llm as get_llm
+#from .llm_remote import get_dev_llm_output as get_stream_llm
+from .llm_remote import get_stream_with_openapi as get_stream_llm
+from .llm_remote import get_dev_llm_output as get_llm
 #from .llm_remote import get_prod_agent as get_agent
 from plugins.common import settings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -42,12 +45,12 @@ def exec_step(current_plan,zhishiku,chanyeku):
         solution_exec = solution_exec.strip()
         #import ipdb
         #ipdb.set_trace()
-        current_bak_data = None
+        solution_bak_data = None
         if 'llm' in solution_type:
             answer = get_llm(solution_exec)
             solution_data = answer
             #solution_data_res.append({solution_exec:solution_data})
-            current_bak_data = {solution_exec:solution_data}
+            solution_bak_data = {solution_exec:solution_data}
             #break
         if '数据库' in solution_type:
             solution_prompt = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，针对以下问题，生成相应的sql指令:\n" + solution_exec
@@ -57,20 +60,21 @@ def exec_step(current_plan,zhishiku,chanyeku):
             #solution_output = get_agent(solution_prompt)
             #solution_output = "select `企业名称`,`企业类型`,`产业` from `企业数据` where  城市 like '%景德%' limit 10;"
             print(solution_exec + ':' + solution_output)
-            solution_data = zhishiku.zsk[1]['zsk'].find_by_sql(solution_output)
-            solution_data_df = pd.DataFrame(solution_data)
-            if solution_data:
-                if len(solution_data) == 1 and ('0' in str(solution_data) or 'None' in str(solution_data)):
-                    solution_bak_data = ''
-                    #continue
-                #is_break = True
-                if '企业数量' in solution_data_df:
-                    #solution_data = solution_data_df['企业数量'][0]
-                    solution_bak_data = solution_data_df['企业数量'][0]
+            solution_bak_data = zhishiku.zsk[1]['zsk'].find_by_sql(solution_output)
+            solution_bak_data = {solution_exec:solution_bak_data}
+            #solution_data_df = pd.DataFrame(solution_data)
+            #if solution_data:
+            #    if len(solution_data) == 1 and ('0' in str(solution_data) or 'None' in str(solution_data)):
+            #        solution_bak_data = ''
+            #        #continue
+            #    #is_break = True
+            #    if '企业数量' in solution_data_df:
+            #        #solution_data = solution_data_df['企业数量'][0]
+            #        solution_bak_data = solution_data_df['企业数量'][0]
 
-                #solution_data_res.append({solution_exec:solution_data})
-                solution_bak_data = {solution_exec:solution_bak_data}
-                #break
+            #    #solution_data_res.append({solution_exec:solution_data})
+            #    solution_bak_data = {solution_exec:solution_bak_data}
+            #    #break
         if '使用工具' in solution_type:
             li = solution_exec.split('\t')
             fun,paramater = li[0],li[1:]
@@ -201,16 +205,18 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku):
         if '获取答案的前缀' in current:
         #if '前缀' in current:
             #solution_prompt = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，针对以下问题，生成相应的回答前缀:\n' + prompt
-            idx = prompt.find('企业')
-            new_prompt = prompt[0:idx+2]
-            solution_prompt = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，请结合给定的数据,解决以下问题:\n' + new_prompt
-            prefix = get_agent(solution_prompt)
+            #idx = prompt.find('企业')
+            #new_prompt = prompt[0:idx+2]
+            #solution_prompt = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，请结合给定的数据,解决以下问题:\n' + new_prompt
             #prefix = get_agent(solution_prompt)
-            print('prefix:' + prefix)
-            #import ipdb
-            #ipdb.set_trace()
-            if not prefix:
-                raise ValueError('没有获得答案，抛出异常，让生成式模型来获取答案')
+            ##prefix = get_agent(solution_prompt)
+            #print('prefix:' + prefix)
+            ##import ipdb
+            ##ipdb.set_trace()
+            #if not prefix:
+            #    raise ValueError('没有获得答案，抛出异常，让生成式模型来获取答案')
+            answer = get_answer_with_context(prompt,str(solution_data),[])
+            break
         if '将数据合并成一个字符串' in current:
             solution_data = str(solution_data)
         if '直接作为答案输出' in current:
@@ -342,8 +348,6 @@ def get_step_output(output,zhishiku,chanyeku,prompt,history_data,return_stream=T
             if step == '获取数据':
                 solution_data = get_solution_data(current_plan,zhishiku,chanyeku)
             if step == '生成答案':
-                import ipdb
-                ipdb.set_trace()
                 answer = generate_answer(solution_data,prompt,current_plan,history_data,zhishiku)
     if answer is None:
         raise ValueError('answer为None，抛出异常')

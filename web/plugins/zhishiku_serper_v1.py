@@ -10,6 +10,9 @@ import fitz
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 import json
 import os
+import re
+import jieba
+import numpy as np
 from goose3 import Goose
 from goose3.text import StopWordsChinese
 from sklearn.metrics.pairwise import cosine_similarity
@@ -56,15 +59,15 @@ async def download_file(session, url,timeout=3):
             await f.write(await response.read())
             await f.close()
             return local_filename
-async def fetch(session, url,timeout=2):
+async def fetch(session, url,timeout=5):
     async with session.get(url,timeout=timeout) as response:
         return await response.text()
 
 async def download_and_extract_file(session, file_link,timeout=3):
     filename = await download_file(session, file_link,timeout)
     article_text = ''
-    import ipdb
-    ipdb.set_trace()
+    #import ipdb
+    #ipdb.set_trace()
     if filename:
         if filename.endswith('.pdf'):
             print(f'PDF内容:')
@@ -82,13 +85,13 @@ async def parse_article(url):
             if url.endswith('.pdf') or url.endswith('.docx'):
                 #filename = await download_file(session,url)
                 article_text = await download_and_extract_file(session, url,3)
-                import ipdb
-                ipdb.set_trace()
+                #import ipdb
+                #ipdb.set_trace()
             else:
-                html = await fetch(session, url,2)
+                html = await fetch(session, url,3)
                 #print(html)
-                import ipdb
-                ipdb.set_trace()
+                #import ipdb
+                #ipdb.set_trace()
                 #g = Goose()
                 g = Goose({'target_language':'zh_cn','browser_user_agent': 'Version/5.1.2 Safari/534.52.7','stopwords_class': StopWordsChinese})
                 article = g.extract(raw_html=html)
@@ -121,8 +124,8 @@ async def parse_article(url):
         return article_text
 
 async def mymain(urls):
-    import ipdb
-    ipdb.set_trace()
+    #import ipdb
+    #ipdb.set_trace()
     tasks = [parse_article(url) for url in urls]
     #if loop is None:
     #loop = asyncio.get_event_loop()
@@ -145,8 +148,7 @@ def get_urls_content(urls):
     #articles = asyncio.run(mymain(urls),debug=True)
     articles = asyncio.run(mymain(urls))
     articles = [e for e in articles if e]
-    import ipdb
-    ipdb.set_trace()
+    print('articles len is {}'.format(len(articles)))
     return articles
 def find(search_query,step = 0):
     conn = http.client.HTTPSConnection("google.serper.dev")
@@ -210,7 +212,7 @@ def get_content(res_li):
     res =  '\n'.join(res)
     return res
 
-def get_related_content(query,content):
+def get_related_content_old(query,content):
     def clean_text(content):
         res = []
         for txt in content.split('\n'):
@@ -270,5 +272,158 @@ def get_related_content(query,content):
     #return res[0:1700]
     return res[0:2500]
     #return res[0:8700]
+
+def get_related_content(query,content):
+    def clean_text(content):
+        res = []
+        for txt in content.split('\n'):
+            if not txt:
+                continue
+            if len(txt) < 5:
+                continue
+            res.append(txt.strip())
+        return '\n'.join(res)
+
+    #content_li = content.split('。')
+    #import ipdb
+    #ipdb.set_trace()
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=25,separators=["\n\n", "\n","。","\r","\u3000"])
+    #texts = text_splitter.split_documents(content)
+    content = clean_text(content)
+    content_li = text_splitter.split_text(content)
+    detail_content_li = []
+    detail_content_li_paragraph = []
+    for paragraph in content_li:
+        for sentence in re.split('\r|\n|,|\.|。|；|;',paragraph):
+            if len(sentence) < 2:
+                continue
+            detail_content_li.append(sentence)
+            detail_content_li_paragraph.append(paragraph)
+    document_embedding = hf_embeddings.embed_documents(detail_content_li)
+
+    query_li = list(jieba.cut(query))
+    query_windows_li = []
+    for idx in range(len(query_li)):
+        query_windows_li.append(query_li[idx])
+        query_windows_li.append(''.join(query_li[idx:idx+2]))
+        query_windows_li.append(''.join(query_li[idx:idx+3]))
+        query_windows_li.append(''.join(query_li[idx:idx+4]))
+    query_li = list(set(query_windows_li))
+    print(query_li)
+    query_embedding = hf_embeddings.embed_documents(query_li)
+
+    #embedding = hf_embeddings.embed_documents(content_li)
+    #score = cosine_similarity([embedding[-1]],embedding[0:-1])
+    score = cosine_similarity(query_embedding,document_embedding)
+    #idxs_all = score.argsort()
+    #res = ['']*len(detail_content_li_paragraph)
+    #res_score = [0]*len(detail_content_li_paragraph)
+
+    ##import ipdb
+    ##ipdb.set_trace()
+    #for index,idxs in enumerate(idxs_all):
+    #    #idxs = idxs[0][::-1]
+    #    #res = ['']*len(content_li)
+    #    len_str = 0
+    #    idxs = idxs[::-1]
+    #    for idx in idxs[0:3]:
+    #        s = score[index][idx]
+    #        print('socre:{}\titem:{}\toriginal:{}'.format(s,detail_content_li[idx],query_li[index]))
+    #        if s < 0.75:
+    #            continue
+    #        #sub_content = content_li[idx]
+    #        sub_content = detail_content_li_paragraph[idx]
+    #        if not sub_content:
+    #            continue
+    #        if len(sub_content) < 15:
+    #            continue
+    #        len_str += len(sub_content)
+    #        #res[idx]=sub_content
+    #        if s > res_score[idx]:
+    #            res_score[idx]=s
+    #        #if len_str > 1000:
+    #        if len_str > 6000:
+    #            break
+    ##len_res = len(res)
+    #res_score_idx = np.argsort(res_score)
+    #count = 0
+    #res_score_idx = res_score_idx[::-1]
+    #for idx in res_score_idx:
+    #    txt = detail_content_li_paragraph[idx]
+    #    count += len(txt)
+    #    if count > 2000:
+    #        break
+    #    #if txt.strip() and len(txt) > 10:
+    #    #    final_res.append(txt)
+    #    res[idx]=txt
+
+    #final_res = ''
+    #for txt in res:
+    #    if len(txt) > 2:
+    #        if txt not in final_res:
+    #            final_res += txt + '\n\n'
+    ##res = '\n\n'.join(final_res)
+    ##res = '\n\n'.join(res)
+    #res = final_res
+    #return res[0:1700]
+    score = score.mean(axis=0)
+    score_idx = score.argsort()
+    score_idx = score_idx[::-1]
+    res = []
+    res_len = 0
+    for idx in score_idx:
+        sub_graph = detail_content_li_paragraph[idx]
+        if len(sub_graph) < 30:
+            continue
+        if sub_graph not in res:
+            res.append(sub_graph)
+            res_len += len(sub_graph)
+        if res_len > 2000:
+            break
+    res_str = '\n'.join(res)
+    res_str =  res_str[0:1700]
+    return res_str
+
+
+
+    #idxs = score.argsort()
+    #idxs = idxs[0][::-1]
+    #res = ['']*len(content_li)
+    #len_str = 0
+    ##import ipdb
+    ##ipdb.set_trace()
+    #for idx in idxs:
+    #    s = score[0][idx]
+    #    if s < 0.75:
+    #        continue
+    #    sub_content = content_li[idx]
+    #    if not sub_content:
+    #        continue
+    #    if len(sub_content) < 15:
+    #        continue
+    #    len_str += len(sub_content)
+    #    res[idx]=sub_content
+    #    #if len_str > 1000:
+    #    #if len_str > 1500:
+    #    if len_str > 1500:
+    #    #if len_str > 8500:
+    #        break
+    #final_res = []
+    ##len_res = len(res)
+    #for idx,txt in enumerate(res):
+    #    #start = idx - 3 if idx - 3 >= 0 else 0
+    #    #end = idx + 3 if idx + 3 < len_res else len_res - 1
+    #    #useful_count = len([i for i in res[start:end+1] if i])
+    #    #ratio = useful_count / len(res[start:end+1])
+    #    #if ratio > 0.28:
+    #    #    final_res.append(content_li[idx])
+    #    if txt.strip() and len(txt) > 10:
+    #        final_res.append(txt)
+
+    #res = '\n\n'.join(final_res)
+    ##res = '\n'.join(res)
+    ##return res[0:1700]
+    #return res[0:2500]
+    ##return res[0:8700]
 
 

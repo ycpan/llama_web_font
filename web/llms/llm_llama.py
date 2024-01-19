@@ -230,7 +230,7 @@ if settings.llm.strategy.startswith("Q"):
         from langchain.llms import LlamaCpp
         #model = mymodel()
         
-        n_gpu_layers = 61  # Change this value based on your model and your GPU VRAM pool.
+        n_gpu_layers = 30  # Change this value based on your model and your GPU VRAM pool.
         n_batch = 512# Should be between 1 and n_ctx, consider the amount of VRAM in your GPU.
         try:
             #import ipdb
