@@ -230,7 +230,7 @@ if settings.llm.strategy.startswith("Q"):
         from langchain.llms import LlamaCpp
         #model = mymodel()
         
-        n_gpu_layers = 30  # Change this value based on your model and your GPU VRAM pool.
+        n_gpu_layers = 60  # Change this value based on your model and your GPU VRAM pool.
         n_batch = 512# Should be between 1 and n_ctx, consider the amount of VRAM in your GPU.
         try:
             #import ipdb
@@ -240,14 +240,14 @@ if settings.llm.strategy.startswith("Q"):
             model = LlamaCpp(
                 #model_path="/devdata/home/user/panyongcan/Project/llama.cpp/llama2/13B-16K/ggml-model-q4_0.gguf",  verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=6000,temperature=0.5,top_k=40,top_p=0.9,max_tokens=6000,max_length=6000,suffix='[INST]',eps=1e-5,rope_freq_scale=0.25,use_mmap=False,cache=False
                 #model_path="/devdata/home/user/panyongcan/Project/llama.cpp/llama2/13B-16K/ggml-model-q4_0.gguf",  verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=6000,temperature=0.5,top_k=40,top_p=0.9,max_tokens=6000,max_length=6000,suffix=' [/INST]',eps=1e-5,rope_freq_scale=0.25,use_mmap=False,cache=False
-                model_path="/devdata/home/user/panyongcan/Project/llamacpp/dd/llama.cpp/llama2/13B_16K/ggml-model-q4_0.gguf",  verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=6000,temperature=0.5,top_k=40,top_p=0.9,max_tokens=6000,max_length=6000,suffix=' [/INST]',eps=1e-5,rope_freq_scale=0.25,use_mmap=False,cache=False
+                model_path="/devdata/home/user/panyongcan/Project/llamacpp/dd/llama.cpp/llama2/merge_output/ggml-model-q4_0.gguf",  verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=6000,temperature=0.5,top_k=40,top_p=0.9,max_tokens=6000,max_length=6000,suffix=' [/INST]',eps=1e-5,rope_freq_scale=0.25,use_mmap=False,cache=False
                 )
         except:
             #rope_freq_scale=0.25
             #model = Llama(model_path=settings.llm.path,use_mlock=True,n_ctx=6000,n_gpu_layers=50,rope_freq_scale=0.25)
             model = LlamaCpp(
                 #model_path="/devdata/home/user/panyongcan/Project/llama.cpp/llama2/13B-16K/ggml-model-q4_0.gguf",  verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=6000,temperature=0.5,top_k=40,top_p=0.9,max_tokens=6000,max_length=6000,suffix='[INST]',eps=1e-5,rope_freq_scale=0.25,use_mmap=False,cache=False
-                model_path="/devdata/home/user/panyongcan/Project/llamacpp/dd/llama.cpp/llama2/13B_16K/ggml-model-q4_0.gguf",  verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=6000,temperature=0.5,top_k=40,top_p=0.9,max_tokens=6000,max_length=6000,suffix=' [/INST]',eps=1e-5,rope_freq_scale=0.25,use_mmap=False,cache=False
+                model_path="/devdata/home/user/panyongcan/Project/llamacpp/dd/llama.cpp/llama2/merge_output/ggml-model-q4_0.gguf",  verbose=True, n_gpu_layers=n_gpu_layers, n_ctx=6000,temperature=0.5,top_k=40,top_p=0.9,max_tokens=6000,max_length=6000,suffix=' [/INST]',eps=1e-5,rope_freq_scale=0.25,use_mmap=False,cache=False
                 )
 
 else:

@@ -6,13 +6,16 @@ import numpy as np
 import openai
 import pandas as pd
 from retry import retry
-from .llm_remote import get_dev_agent_output as get_agent
+#from .llm_remote import get_dev_agent_output as get_agent
+from .llm_remote import get_prod_agent as get_agent
 #from .llm_remote import get_prod_stream_llm as get_stream_llm
 #from .llm_remote import get_prod_llm as get_llm
 #from .llm_remote import get_dev_llm_output as get_stream_llm
 from .llm_remote import get_stream_with_openapi as get_stream_llm
-from .llm_remote import get_dev_llm_output as get_llm
-#from .llm_remote import get_prod_agent as get_agent
+#from .llm_remote import get_prod_stream_llm as get_stream_llm
+#from .llm_remote import get_dev_llm_output as get_llm
+from .llm_remote import get_dev_llm_output_fast as get_llm
+#from .llm_remote import get_prod_llm as get_llm
 from plugins.common import settings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
@@ -37,7 +40,7 @@ def get_web_data(solution_prompt,zhishiku):
     if solution_data:
         return solution_data
     return ''
-def exec_step(current_plan,zhishiku,chanyeku):
+def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
     try:
         current_li = current_plan.split(':')
         solution_type= current_li[0]
@@ -47,11 +50,23 @@ def exec_step(current_plan,zhishiku,chanyeku):
         #ipdb.set_trace()
         solution_bak_data = None
         if 'llm' in solution_type:
-            answer = get_llm(solution_exec)
+            new_prompt = str(current_bak_data) + ' ' + solution_exec
+            #answer = get_llm(solution_exec)
+            answer = get_llm(new_prompt)
             solution_data = answer
             #solution_data_res.append({solution_exec:solution_data})
             solution_bak_data = {solution_exec:solution_data}
             #break
+        if 'eval' in solution_type:
+            #new_prompt = str(current_bak_data) + ' ' + solution_exec + '请回答是或否'
+            ##answer = get_llm(solution_exec)
+            #answer = get_llm(new_prompt)
+            #solution_data = answer
+            ##solution_data_res.append({solution_exec:solution_data})
+            #solution_bak_data = {solution_exec:solution_data}
+            ##break
+            solution_bak_data = current_bak_data
+
         if '数据库' in solution_type:
             solution_prompt = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，针对以下问题，生成相应的sql指令:\n" + solution_exec
             #solution_prompt = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，请解决以下问题:\n" + solution_exec
@@ -97,6 +112,8 @@ def exec_step(current_plan,zhishiku,chanyeku):
                     solution_bak_data = {solution_exec:solution_data}
                     #break
         if '搜索引擎' in solution_type:
+            #import ipdb
+            #ipdb.set_trace()
             solution_prompt = solution_exec
             #solution_data = zhishiku.zsk[1]['zsk'].find(solution_prompt) #mysql 缓存
             #import ipdb
@@ -129,28 +146,35 @@ def get_solution_data(current_plans,zhishiku,chanyeku):
     solution_add_data = []
     #import ipdb
     #ipdb.set_trace()
+    current_add_data = ''
     for current_add_plan in current_plans:
-        current_update_data = None
+        current_update_data = ''
         if isinstance(current_add_plan,list):
             for current_update_plan in current_add_plan:
-                current_bak_data = None
+                current_bak_data = ''
                 if isinstance(current_update_plan,list):
                     for current_bak_plan in current_update_plan:
-                        solution_data = exec_step(current_bak_plan,zhishiku,chanyeku)
-                        if solution_data:
-                            current_bak_data = solution_data
+                        current_bak_data = exec_step(current_bak_plan,zhishiku,chanyeku,current_update_data)
+                        if current_bak_data:
+                            current_update_data = current_bak_data
                             break
-                    if not solution_data:
+                    if not current_bak_data:
                         print('current_bak_data should be empty,flag1')
                 else:
-                    current_bak_data = exec_step(current_bak_plan,zhishiku,chanyeku)
-                    if not solution_data:
+                    current_bak_data = exec_step(current_bak_plan,zhishiku,chanyeku,current_update_data)
+                    if current_bak_data:
+                        current_update_data = current_bak_data
+                    else:
                         print('current_bak_data should be empty,flag2')
 
-            current_update_data = current_bak_data
+            current_add_data = current_update_data
         else:
             current_update_data = exec_step(current_update_plan,zhishiku,chanyeku)
-        solution_add_data.append(current_update_data)
+            if current_update_data:
+                current_add_data = current_update_data
+            else:
+                print('current_update_data should be empty,flag1')
+        solution_add_data.append(current_add_data)
                 #solution_update_data = solution_bak_data
             #solution_add_data.append(solution_update_data)
 
@@ -188,6 +212,8 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku):
     "{'获取数据': ['从企业数据库中获取数据:获取位于景德镇珠山的企业,>给出企业名称，企业类型,产业', '查询搜索引擎:烟台企业'], '生成答案': [\"'从上述>列表中，选出企业列表'\"], '评价答案': []}"
     {'获取数据': [['从企业数据库中获取数据:北京专精特新企业的企业名称，产业，企业类型'], ['查询搜索引擎:北京专精特新企业']], '生成答案': ['获取答案的前缀', '将答案和前缀进行组合输出'], '评价答案': []}
     """
+    #import ipdb
+    #ipdb.set_trace()
     #if isinstance(solution_data,list):
     #    solution_data = pd.DataFrame(solution_data)
     prefix = None

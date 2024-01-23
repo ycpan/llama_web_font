@@ -42,6 +42,31 @@ def get_dev_llm_output(input_str):
     else:
         response_text = ''
     return response_text
+def get_dev_llm_output_fast(input_str):
+    """
+    这个接口使用openai的协议，但是不支持stream
+    """
+    #api_endpoint = "http://10.0.0.12:23333/v1/completions"
+    api_endpoint = "http://10.0.0.12:23333/v1/chat/completions"
+    input_messages = { "prompt": input_str}
+    params = {
+      #"model": "gpt-3.5-turbo",
+      #"model": "gpt-3.5-turbo-0613",
+      "model": "internlm2-chat-7b",
+      "messages": [{"role": "user", "content": input_str}],
+      #"stream":True
+      "stream":False
+    }
+    headers = {"Content-Type": "application/json",
+               "Authorization": f"Bearer {access_token}"
+               }
+    response = requests.post(api_endpoint, headers=headers, json=params)
+    if response.status_code == 200:
+        #response_text = json.loads(response.text)["choices"][0]["text"]
+        response_text = json.loads(response.text)["choices"][0]['message']['content']
+    else:
+        response_text = ''
+    return response_text
 def get_output_v1(input_sentence):
     """
     这个接口是测试小参数模型用的，不支持steam模式
@@ -251,8 +276,9 @@ def get_stream_with_openapi(data):
     #ipdb.set_trace()
     history_data = [ {"role": "system", "content": "You are a helpful assistant."}]
     if isinstance(data,list):
-        raise ValueError('这个需要再处理')
+        #raise ValueError('这个需要再处理')
         #data = {'prompt':data,'history':[]}
+        history_data = data
     if isinstance(data,str):
         #data = {'prompt':data,'history':[]}
         history_data.append({"role": "user", "content": data},)
