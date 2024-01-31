@@ -8,13 +8,20 @@ import pandas as pd
 from retry import retry
 #from .llm_remote import get_dev_agent_output as get_agent
 from .llm_remote import get_prod_agent as get_agent
+#from .llm_remote import get_dev_agent_output_fast as get_agent
 #from .llm_remote import get_prod_stream_llm as get_stream_llm
 #from .llm_remote import get_prod_llm as get_llm
 #from .llm_remote import get_dev_llm_output as get_stream_llm
-from .llm_remote import get_stream_with_openapi as get_stream_llm
+from .llm_remote import get_prod_stream_with_openapi as get_stream_llm
+#from .llm_remote import get_dev_stream_with_openapi as get_stream_llm
+#from .llm_remote import get_zhishiku_stream_with_openapi as get_zhishiku_stream_llm
+#from .llm_remote import get_zhishiku_stream_with_openapi as get_stream_llm
 #from .llm_remote import get_prod_stream_llm as get_stream_llm
 #from .llm_remote import get_dev_llm_output as get_llm
+#from .llm_remote import get_prod_llm_output_fast as get_llm
 from .llm_remote import get_dev_llm_output_fast as get_llm
+from .llm_remote import get_dev_llm_output_fast as get_zhishiku_llm
+#from .llm_remote import get_zhishiku_output_fast as get_zhishiku_llm
 #from .llm_remote import get_prod_llm as get_llm
 from plugins.common import settings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -52,7 +59,8 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
         if 'llm' in solution_type:
             new_prompt = str(current_bak_data) + ' ' + solution_exec
             #answer = get_llm(solution_exec)
-            answer = get_llm(new_prompt)
+            #answer = get_llm(new_prompt)
+            answer = get_zhishiku_llm(new_prompt)
             solution_data = answer
             #solution_data_res.append({solution_exec:solution_data})
             solution_bak_data = {solution_exec:solution_data}
@@ -130,6 +138,7 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
                 #    print('save {} mysql successfully'.format(solution_prompt))
             if solution_data:
 
+                print(solution_data)
                 #text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=25,separators=["\n\n", "\n","。","\r","\u3000"])
                 #is_break = True
                 #break
@@ -242,6 +251,22 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku):
             #if not prefix:
             #    raise ValueError('没有获得答案，抛出异常，让生成式模型来获取答案')
             answer = get_answer_with_context(prompt,str(solution_data),[])
+            break
+        if '生成报告' in current:
+            solution_data = str(solution_data)
+            #import ipdb
+            #ipdb.set_trace()
+            keys = ['标题','摘要','数据','结论']
+            report_data = {}
+            for key in keys:
+                context_data = str(solution_data) + f'针对上述内容，生成报告的{key}'
+                #sub_report_data = get_llm(context_data)
+                sub_report_data = get_zhishiku_llm(context_data)
+                report_data[key] = sub_report_data
+            #report_data = generate_llm_report_data(solution_data)
+            #report_data = solution_data
+            report_path = zhishiku.zsk[10]['zsk'].report(report_data)
+            answer = report_path
             break
         if '将数据合并成一个字符串' in current:
             solution_data = str(solution_data)
@@ -452,12 +477,16 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
     plan_question = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，针对以下问题，生成相应的解决问题的计划与步骤:\n' + prompt
     #plan_question = plan_question.strip()
     plan_history_data = copy.deepcopy(history_data)
+    #import ipdb
+    #ipdb.set_trace()
     plan_history_data.append({"role":"user","content":plan_question})
+    #plan_history_data = plan_history_data[::-1]
     print(history_data)
     #output = get_agent(plan_question)
     #import ipdb
     #ipdb.set_trace()
     output = get_agent(plan_history_data)
+    print(output)
     #output = get_agent(plan_history_data)
     solution_data = ''
     #import ipdb
@@ -506,6 +535,7 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
                     #ipdb.set_trace()
                     if output_type == 'plan':
                         solution_datas = []
+                        current_plan = current_plan[0:2]
                         for plan in current_plan:
                             if not isinstance(plan,str):
                                 if isinstance(plan,list):
@@ -568,6 +598,8 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
             if '[DONE]' in chunk:
                 continue
             if len(chunk) > 2:
+                #import ipdb
+                #ipdb.set_trace()
                 chunk = json.loads(chunk)
                 yield chunk["response"].replace('\n','<br />\n')
         #except:

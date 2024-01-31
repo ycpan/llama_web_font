@@ -12,6 +12,65 @@ from plugins.common import settings
 #api_endpoint = "http://10.0.0.12:8000/v1/completions"
 access_token = "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"
 
+DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant. 你是一个乐于助人的助手。"""
+
+TEMPLATE_WITH_SYSTEM_PROMPT = (
+    "[INST] <<SYS>>\n"
+    "{system_prompt}\n"
+    "<</SYS>>\n\n"
+    "{instruction} [/INST]"
+)
+
+TEMPLATE_WITHOUT_SYSTEM_PROMPT = "[INST] {instruction} [/INST]"
+
+def generate_prompt(instruction, response="", with_system_prompt=True, system_prompt=None):
+    if with_system_prompt is True:
+        if system_prompt is None:
+            system_prompt = DEFAULT_SYSTEM_PROMPT
+        prompt = TEMPLATE_WITH_SYSTEM_PROMPT.format_map({'instruction': instruction,'system_prompt': system_prompt})
+    else:
+        prompt = TEMPLATE_WITHOUT_SYSTEM_PROMPT.format_map({'instruction': instruction})
+    if len(response)>0:
+        prompt += " " + response
+    return prompt
+
+def generate_completion_prompt(instruction: str):
+    """Generate prompt for completion"""
+    return generate_prompt(instruction, response="", with_system_prompt=True)
+
+
+def generate_chat_prompt(messages: list):
+    """Generate prompt for chat completion"""
+
+    system_msg = None
+    for msg in messages:
+        #if msg.role == 'system':
+        if msg['role'] == 'system':
+            #system_msg = msg.content
+            system_msg = msg['content']
+    prompt = ""
+    is_first_user_content = True
+    for msg in messages:
+        if msg['role'] == 'system':
+            continue
+        if msg['role'] == 'user':
+            if is_first_user_content is True:
+                #prompt += generate_prompt(msg.content, with_system_prompt=True, system_prompt=system_msg)
+                prompt += generate_prompt(msg['content'], with_system_prompt=True, system_prompt=system_msg)
+                is_first_user_content = False
+            else:
+                #prompt += '<s>'+generate_prompt(msg.content, with_system_prompt=False)
+                prompt += '<s>'+generate_prompt(msg['content'], with_system_prompt=False)
+        if msg['role'] == 'assistant' or msg['role'] == 'ai':
+                #prompt += f" {msg.content}"+"</s>"
+                prompt += f" {msg['content']}"+"</s>"
+    return prompt
+def get_generate_prompt(question):
+    if isinstance(question, str):
+        prompt = generate_completion_prompt(question)
+    else:
+        prompt = generate_chat_prompt(question)
+    return prompt
 def get_dev_agent_output(input_str):
     """
     这个接口使用openai的协议，但是不支持stream
@@ -42,18 +101,130 @@ def get_dev_llm_output(input_str):
     else:
         response_text = ''
     return response_text
+def get_dev_agent_output_fast(input_str):
+    """
+    这个接口使用openai的协议，但是不支持stream
+    """
+    api_endpoint = "http://10.0.0.20:23336/v1/chat/completions"
+    input_messages = get_generate_prompt(input_str)
+    #if isinstance(input_str,str):
+    #    history_data = [ {"role": "system", "content": "You are a helpful assistant. 你是一个乐于助人的助手。\n"}]
+    #    input_messages = [{"role": "user", "content": input_str}]
+    #    history_data.extend(input_messages)
+    #    input_messages = history_data
+
+    params = {
+      #"model": "gpt-3.5-turbo",
+      #"model": "gpt-3.5-turbo-0613",
+      #"model": "internlm2-chat-7b",
+      "model": "llama2",
+      "max_tokens":1512,
+      "temperature":0.2,
+      "repetition_penalty":1.1,
+      "top_p":0.9,
+      "top_k":40,
+      #"model": "gpt-4-0613",
+      #"messages": [{"role": "user", "content": "Hello!"}]
+      #"messages": [{"role": "user", "content": input_str}],
+      "messages": input_messages,
+      #"stream":True
+      "stream":False
+    }
+    headers = {"Content-Type": "application/json",
+               "Authorization": f"Bearer {access_token}"
+               }
+    response = requests.post(api_endpoint, headers=headers, json=params)
+    if response.status_code == 200:
+        #response_text = json.loads(response.text)["choices"][0]["text"]
+        response_text = json.loads(response.text)["choices"][0]['message']['content']
+    else:
+        response_text = ''
+    return response_text
+def get_zhishiku_output_fast(input_str):
+    """
+    这个接口使用openai的协议，但是不支持stream
+    """
+    api_endpoint = "http://10.0.0.20:8000/v1/chat/completions"
+
+    params = {
+      #"model": "gpt-3.5-turbo",
+      #"model": "gpt-3.5-turbo-0613",
+      #"model": "internlm2-chat-7b",
+      #"model": "llama2",
+      "model": "/home/user/panyongcan/project/llm/origin/Orion-master/quantization/quantized_model",
+      "max_tokens":2512,
+      "temperature":0.2,
+      "repetition_penalty":1.1,
+      "top_p":0.9,
+      "top_k":40,
+      #"model": "gpt-4-0613",
+      #"messages": [{"role": "user", "content": "Hello!"}]
+      "messages": [{"role": "user", "content": input_str}],
+      #"messages": input_messages,
+      #"stream":True
+      "stream":False
+    }
+    headers = {"Content-Type": "application/json",
+               "Authorization": f"Bearer {access_token}"
+               }
+    response = requests.post(api_endpoint, headers=headers, json=params)
+    if response.status_code == 200:
+        #response_text = json.loads(response.text)["choices"][0]["text"]
+        response_text = json.loads(response.text)["choices"][0]['message']['content']
+    else:
+        response_text = ''
+    return response_text
 def get_dev_llm_output_fast(input_str):
+    """
+    这个接口使用openai的协议，但是不支持stream
+    """
+    api_endpoint = "http://10.0.0.20:23333/v1/chat/completions"
+    #api_endpoint = "http://10.0.0.20:8000/v1/chat/completions"
+    #input_messages = { "prompt": input_str}
+    #input_messages = get_generate_prompt(input_str)
+    input_messages = [{"role": "user", "content": input_str}]
+    params = {
+      #"model": "gpt-3.5-turbo",
+      #"model": "gpt-3.5-turbo-0613",
+      "model": "internlm2-chat-7b",
+      #"model": "llama2",
+      #"model": "/home/user/panyongcan/project/llm/Chinese-LLaMA-Alpaca-2/scripts/Llama2-chat-13b",
+      "max_tokens":1512,
+      "temperature":0.2,
+      "repetition_penalty":1.15,
+      "top_p":0.9,
+      "top_k":40,
+      #"model": "gpt-4-0613",
+      #"messages": [{"role": "user", "content": "Hello!"}]
+      #"messages": [{"role": "user", "content": input_str}],
+      "messages": input_messages,
+      #"stream":True
+      "stream":False
+    }
+    headers = {"Content-Type": "application/json",
+               "Authorization": f"Bearer {access_token}"
+               }
+    response = requests.post(api_endpoint, headers=headers, json=params)
+    if response.status_code == 200:
+        #response_text = json.loads(response.text)["choices"][0]["text"]
+        response_text = json.loads(response.text)["choices"][0]['message']['content']
+    else:
+        response_text = ''
+    return response_text
+def get_prod_llm_output_fast(input_str):
     """
     这个接口使用openai的协议，但是不支持stream
     """
     #api_endpoint = "http://10.0.0.12:23333/v1/completions"
     api_endpoint = "http://10.0.0.12:23333/v1/chat/completions"
-    input_messages = { "prompt": input_str}
+    #input_messages = { "prompt": input_str}
+    input_messages = get_generate_prompt(input_str)
     params = {
       #"model": "gpt-3.5-turbo",
       #"model": "gpt-3.5-turbo-0613",
       "model": "internlm2-chat-7b",
-      "messages": [{"role": "user", "content": input_str}],
+      #"messages": [{"role": "user", "content": input_str}],
+      "messages": input_messages,
       #"stream":True
       "stream":False
     }
@@ -271,20 +442,79 @@ def completion_with_backoff(**kwargs):
             chunk=[{'choices':[{'finish_reason':'continue','delta':dm,'content':content}]}]
             return chunk
         raise e  
-def get_stream_with_openapi(data):
+def get_dev_stream_with_openapi(data):
     #import ipdb
     #ipdb.set_trace()
-    history_data = [ {"role": "system", "content": "You are a helpful assistant."}]
+    #history_data = [ {"role": "system", "content": "You are a helpful assistant."}]
+    #import ipdb
+    #ipdb.set_trace()
+    input_messages = [{"role": "user", "content": data}]
     if isinstance(data,list):
-        #raise ValueError('这个需要再处理')
-        #data = {'prompt':data,'history':[]}
-        history_data = data
-    if isinstance(data,str):
-        #data = {'prompt':data,'history':[]}
-        history_data.append({"role": "user", "content": data},)
+        input_messages = data
+    #if isinstance(data,str):
+    #    #data = {'prompt':data,'history':[]}
+    #    history_data.append({"role": "user", "content": data},)
+    #input_messages = get_generate_prompt(data)
     openai.api_key = 'sk-cRujJbZqefFoj5753c8d94B8F7654c57807cCc3b145aC547'
-    openai.api_base = settings.llm.api_host
-    response = completion_with_backoff(model="internlm2-chat-7b", messages=history_data, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    api_endpoint = "http://10.0.0.20:23333/v1"
+    #api_endpoint = "http://10.0.0.20:8000/v1"
+    openai.api_base = api_endpoint
+    #openai.api_base = settings.llm.api_host
+    response = completion_with_backoff(model="internlm2-chat-7b", temperature=0.6,repetition_penalty=1.1,top_p=0.6,top_k=40,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    #response = completion_with_backoff(model="/home/user/panyongcan/project/llm/Chinese-LLaMA-Alpaca-2/scripts/Llama2-chat-13b", temperature=0.6,repetition_penalty=1.35,top_p=0.6,top_k=20,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    resTemp=""
+    try:
+        for chunk in response:
+            #print(chunk)
+            if chunk['choices'][0]["finish_reason"]!="stop":
+                if hasattr(chunk['choices'][0]['delta'], 'content'):
+                    resTemp+=chunk['choices'][0]['delta']['content']
+                    #yield resTemp
+                    yield "%s\n\n" % json.dumps({"response": resTemp},ensure_ascii=False)
+        #return resTemp
+    except:
+        traceback.print_exc()
+        pass
+    yield "data: %s\n\n" % "[DONE]"
+def get_prod_stream_with_openapi(data):
+    #import ipdb
+    #ipdb.set_trace()
+    #history_data = [ {"role": "system", "content": "You are a helpful assistant."}]
+    #input_messages = get_generate_prompt(data)
+    input_messages = [{"role": "user", "content": data}]
+    if isinstance(data,list):
+        input_messages = data
+    openai.api_key = 'sk-cRujJbZqefFoj5753c8d94B8F7654c57807cCc3b145aC547'
+    api_endpoint = "http://10.0.0.12:23333/v1"
+    openai.api_base = api_endpoint
+    #openai.api_base = settings.llm.api_host
+    #response = completion_with_backoff(model="internlm2-chat-7b", messages=history_data, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    #response = completion_with_backoff(model="internlm2-chat-7b", messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    response = completion_with_backoff(model="internlm2-chat-7b", temperature=0.6,repetition_penalty=1.1,top_p=0.6,top_k=40,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    resTemp=""
+    try:
+        for chunk in response:
+            #print(chunk)
+            if chunk['choices'][0]["finish_reason"]!="stop":
+                if hasattr(chunk['choices'][0]['delta'], 'content'):
+                    resTemp+=chunk['choices'][0]['delta']['content']
+                    #yield resTemp
+                    yield "%s\n\n" % json.dumps({"response": resTemp},ensure_ascii=False)
+        #return resTemp
+    except:
+        traceback.print_exc()
+        pass
+    yield "data: %s\n\n" % "[DONE]"
+def get_zhishiku_stream_with_openapi(data):
+    if isinstance(data,str):
+        data = [{"role": "user", "content": data}]
+    #history_data = [ {"role": "system", "content": "You are a helpful assistant."}]
+    #input_messages = get_generate_prompt(data)
+    openai.api_key = 'sk-cRujJbZqefFoj5753c8d94B8F7654c57807cCc3b145aC547'
+    api_endpoint = "http://10.0.0.20:8000/v1"
+    openai.api_base = api_endpoint
+    model = "/home/user/panyongcan/project/llm/origin/Orion-master/quantization/quantized_model"
+    response = completion_with_backoff(model=model, temperature=0.2,repetition_penalty=1.1,top_p=0.9,top_k=40,max_tokens=2048,messages=data,  stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
     resTemp=""
     try:
         for chunk in response:

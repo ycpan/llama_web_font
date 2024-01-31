@@ -207,6 +207,17 @@ def get_output_with_openai(history_data):
             if hasattr(chunk['choices'][0]['delta'], 'content'):
                 resTemp+=chunk['choices'][0]['delta']['content']
                 yield resTemp
+def get_zhishiku_with_openai(history_data):
+    #openai.api_key = os.getenv("OPENAI_API_KEY")
+    openai.api_key = 'sk-cRujJbZqefFoj5753c8d94B8F7654c57807cCc3b145aC547'
+    openai.api_base = settings.llm.api_host
+    response = completion_with_backoff(model="gpt-4-0613", messages=history_data, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    for chunk in response:
+        #print(chunk)
+        if chunk['choices'][0]["finish_reason"]!="stop":
+            if hasattr(chunk['choices'][0]['delta'], 'content'):
+                resTemp+=chunk['choices'][0]['delta']['content']
+                yield resTemp
 
 if __name__ == "__main__":
     query = '广东产业集群'

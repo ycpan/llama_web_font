@@ -167,6 +167,8 @@ def find(search_query,step = 0):
     data=json.loads(data)
     clean_data = data['organic']
     content = get_content(clean_data)
+    #if len(content) < 50000:
+    #    return content
     related_res = get_related_content(search_query,content)
     #print(data)
     #l=[{'title': "["+organic["title"]+"]("+organic["link"]+")", 'content':organic["snippet"]} for organic in data['organic']]
@@ -381,7 +383,7 @@ def get_related_content(query,content):
         if res_len > 2000:
             break
     res_str = '\n'.join(res)
-    res_str =  res_str[0:1700]
+    res_str =  res_str[0:2700]
     return res_str
 
 
