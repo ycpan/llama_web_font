@@ -106,6 +106,7 @@ def get_dev_agent_output_fast(input_str):
     这个接口使用openai的协议，但是不支持stream
     """
     api_endpoint = "http://10.0.0.20:23336/v1/chat/completions"
+    #api_endpoint = "http://10.0.0.12:23336/v1/chat/completions"
     input_messages = get_generate_prompt(input_str)
     #if isinstance(input_str,str):
     #    history_data = [ {"role": "system", "content": "You are a helpful assistant. 你是一个乐于助人的助手。\n"}]
@@ -119,7 +120,49 @@ def get_dev_agent_output_fast(input_str):
       #"model": "internlm2-chat-7b",
       "model": "llama2",
       "max_tokens":1512,
-      "temperature":0.2,
+      #"temperature":0.2,
+      "temperature":0.5,
+      "repetition_penalty":1.1,
+      "top_p":0.9,
+      "top_k":40,
+      #"model": "gpt-4-0613",
+      #"messages": [{"role": "user", "content": "Hello!"}]
+      #"messages": [{"role": "user", "content": input_str}],
+      "messages": input_messages,
+      #"stream":True
+      "stream":False
+    }
+    headers = {"Content-Type": "application/json",
+               "Authorization": f"Bearer {access_token}"
+               }
+    response = requests.post(api_endpoint, headers=headers, json=params)
+    if response.status_code == 200:
+        #response_text = json.loads(response.text)["choices"][0]["text"]
+        response_text = json.loads(response.text)["choices"][0]['message']['content']
+    else:
+        response_text = ''
+    return response_text
+def get_prod_agent_output_fast(input_str):
+    """
+    这个接口使用openai的协议，但是不支持stream
+    """
+    #api_endpoint = "http://10.0.0.20:23336/v1/chat/completions"
+    api_endpoint = "http://10.0.0.12:23336/v1/chat/completions"
+    input_messages = get_generate_prompt(input_str)
+    #if isinstance(input_str,str):
+    #    history_data = [ {"role": "system", "content": "You are a helpful assistant. 你是一个乐于助人的助手。\n"}]
+    #    input_messages = [{"role": "user", "content": input_str}]
+    #    history_data.extend(input_messages)
+    #    input_messages = history_data
+
+    params = {
+      #"model": "gpt-3.5-turbo",
+      #"model": "gpt-3.5-turbo-0613",
+      #"model": "internlm2-chat-7b",
+      "model": "llama2",
+      "max_tokens":1512,
+      #"temperature":0.2,
+      "temperature":0.5,
       "repetition_penalty":1.1,
       "top_p":0.9,
       "top_k":40,
@@ -181,8 +224,8 @@ def get_dev_llm_output_fast(input_str):
     api_endpoint = "http://10.0.0.20:23333/v1/chat/completions"
     #api_endpoint = "http://10.0.0.20:8000/v1/chat/completions"
     #input_messages = { "prompt": input_str}
-    #input_messages = get_generate_prompt(input_str)
-    input_messages = [{"role": "user", "content": input_str}]
+    input_messages = get_generate_prompt(input_str)
+    #input_messages = [{"role": "user", "content": input_str}]
     params = {
       #"model": "gpt-3.5-turbo",
       #"model": "gpt-3.5-turbo-0613",
@@ -448,19 +491,21 @@ def get_dev_stream_with_openapi(data):
     #history_data = [ {"role": "system", "content": "You are a helpful assistant."}]
     #import ipdb
     #ipdb.set_trace()
-    input_messages = [{"role": "user", "content": data}]
-    if isinstance(data,list):
-        input_messages = data
-    #if isinstance(data,str):
-    #    #data = {'prompt':data,'history':[]}
-    #    history_data.append({"role": "user", "content": data},)
-    #input_messages = get_generate_prompt(data)
+    #input_messages = [{"role": "user", "content": data}]
+    #if isinstance(data,list):
+    #    input_messages = data
+    #import ipdb
+    #ipdb.set_trace()
+    input_messages = get_generate_prompt(data)
     openai.api_key = 'sk-cRujJbZqefFoj5753c8d94B8F7654c57807cCc3b145aC547'
     api_endpoint = "http://10.0.0.20:23333/v1"
     #api_endpoint = "http://10.0.0.20:8000/v1"
     openai.api_base = api_endpoint
     #openai.api_base = settings.llm.api_host
-    response = completion_with_backoff(model="internlm2-chat-7b", temperature=0.6,repetition_penalty=1.1,top_p=0.6,top_k=40,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    #response = completion_with_backoff(model="internlm2-chat-7b", temperature=0.6,repetition_penalty=1.08,top_p=0.7,top_k=20,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    response = completion_with_backoff(model="internlm2-chat-7b", temperature=0.2,repetition_penalty=1.08,top_p=0.6,top_k=40,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    #response = completion_with_backoff(model="internlm2-chat-7b", temperature=0.6,repetition_penalty=1.02,top_p=0.6,top_k=40,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    #response = completion_with_backoff(model="internlm2-chat-7b", temperature=0.6,repetition_penalty=1.1,top_p=0.6,top_k=40,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
     #response = completion_with_backoff(model="/home/user/panyongcan/project/llm/Chinese-LLaMA-Alpaca-2/scripts/Llama2-chat-13b", temperature=0.6,repetition_penalty=1.35,top_p=0.6,top_k=20,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
     resTemp=""
     try:
@@ -480,10 +525,10 @@ def get_prod_stream_with_openapi(data):
     #import ipdb
     #ipdb.set_trace()
     #history_data = [ {"role": "system", "content": "You are a helpful assistant."}]
-    #input_messages = get_generate_prompt(data)
-    input_messages = [{"role": "user", "content": data}]
-    if isinstance(data,list):
-        input_messages = data
+    input_messages = get_generate_prompt(data)
+    #input_messages = [{"role": "user", "content": data}]
+    #if isinstance(data,list):
+    #    input_messages = data
     openai.api_key = 'sk-cRujJbZqefFoj5753c8d94B8F7654c57807cCc3b145aC547'
     api_endpoint = "http://10.0.0.12:23333/v1"
     openai.api_base = api_endpoint

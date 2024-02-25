@@ -34,8 +34,6 @@ def get_ck_data(sql):
 #def get_chanyechengshi(chanye=''):
 def get_quanguopaiming(chanye='',top=10):
     res = []
-    if isinstance(top,str):
-        top = int(top)
     """
     新能源产业比较强的城市有哪些？
     """

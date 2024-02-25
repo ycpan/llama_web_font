@@ -89,7 +89,7 @@ def get_chanyejiegou(city_name,chanye=''):
     {cy_paiming_str}
     {youshi_str}\n\n{mid_str}\n{lieshi_str}"
     """
-    if not all_chanye:
+    if not paiming:
         answer = ''
     return answer
 if __name__ == '__main__':

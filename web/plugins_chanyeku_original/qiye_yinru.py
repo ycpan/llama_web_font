@@ -3,26 +3,14 @@ import json
 import pickle
 import os 
 import pandas as pd
-#from .location_mapper import get_intergrity_from_str
+from .location_mapper import get_intergrity_from_str
 #from location_mapper import get_intergrity_from_str
 
-def get_intergrity_from_str(input_sentence):
-    host = '10.0.0.16'
-    port = '6666'
-    post_data = {"text": input_sentence}
-    docano_json = json.dumps(post_data,ensure_ascii=False)
-    r = requests.post("http://"+host+":"+port+"/get_intergrity", json=docano_json)
-    #print(r)
-    result = r.text
-    result = json.loads(result)
-    province,city = result[0:2]
-    return province,city
 def get_chanye2code():
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    #index  = dir_path.find('/web')
-    #web_path = dir_path[0:index + 5]
-    #csv_path = os.path.join(web_path,'plugins_chanyeku/chanye2code.csv')
-    csv_path = os.path.join(dir_path,'chanye2code.csv')
+    index  = dir_path.find('/web')
+    web_path = dir_path[0:index + 5]
+    csv_path = os.path.join(web_path,'plugins_chanyeku/chanye2code.csv')
     data = pd.read_csv(csv_path)
     return data
 #f = open('/devdata/home/user/panyongcan/Project/llama_web_font/web/plugins_chanyeku/industry2code.pkl','rb')
@@ -65,8 +53,6 @@ def get_qiyeyinru(city_name='烟台',chanye=''):
     if not chanye_code:
         return ''
     province,city = get_intergrity_from_str(city_name)
-    if not city:
-        return ''
     if province in '北京市天津市重庆市上海市':
         city = province
     payload = json.dumps({
@@ -144,12 +130,10 @@ def get_qiyeyinru(city_name='烟台',chanye=''):
     headers = {
       'Content-Type': 'application/json'
     }
+    import ipdb
+    ipdb.set_trace()
     response = requests.request("POST", url, headers=headers, data=payload)
-    data = ""
-    try:
-        data = json.loads(response.text)
-    except:
-        return ""
+    data = json.loads(response.text)
     company = [x['name'] for x in data['allCompany']['rows']]
     answer = f'{city_name}在{chanye}上应该引入的企业为:\n' + '\n'.join(company[0:10])
     if not company:
@@ -159,6 +143,4 @@ if __name__ == '__main__':
     #data = get_qiyeyinru('')
     #data = get_qiyeyinru('郑州市',chanye='半导体与集成电路产业')
     data = get_qiyeyinru('烟台',chanye='新能源')
-    #data = get_qiyeyinru('河南',chanye='新能源')
-    #data =get_qiyeyinru('岳阳县','补益药')
     print(data)

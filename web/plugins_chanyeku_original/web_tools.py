@@ -5,13 +5,10 @@
 # @Description :
 import requests
 import pandas as pd
-import os
 def get_city_code_dict():
     res = {}
     #df = pd.read_excel('com_weather_city.xlsx')
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    xlsx_path = os.path.join(dir_path,'com_weather_city.xlsx')
-    df = pd.read_excel(xlsx_path)
+    df = pd.read_excel('/devdata/home/user/panyongcan/Project/chatweb1/dev/main/llama_web_font/web/plugins_chanyeku/com_weather_city.xlsx')
     for idx,da in df.iterrows():
         city = da['level3']
         code = da['areaid']

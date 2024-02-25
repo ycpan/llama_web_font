@@ -22,8 +22,8 @@ class MyNeo4j:
         with self.driver.session() as session:
             #result = session.run(query, id=employee_id)
             result = session.run(cypher_sql)
-            import ipdb
-            ipdb.set_trace()
+            #import ipdb
+            #ipdb.set_trace()
             data = result.data()
             return data
 myneo4j = MyNeo4j("bolt://10.0.0.14:17687", "neo4j", "123456789")
@@ -50,6 +50,8 @@ if __name__ == "__main__":
     #cy_sql = "match (current {name:'内存条'}) -[:`下级`]->(children) return current.name,children.name;"
     #cy_sql = "match (current {name:'内存条'}) -[:`下级`*1..3]->(children) return current.name,children.name;"
     cy_sql = "match (current {name:'内存条'}) -[:`下级`]->(level1)-[:`下级`]->(level2)-[:`下级`]->(level3) return current.name,level1.name,level2.name,level3.name;"
-    res = myneo4j.query_data(cy_sql)
-    myneo4j.close()
+    #res = myneo4j.query_data(cy_sql)
+    #myneo4j.close()
+    res = find_by_sql(cy_sql)
+    print(res)
     

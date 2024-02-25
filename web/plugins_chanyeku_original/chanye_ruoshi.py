@@ -37,13 +37,13 @@ def get_ck_data(sql):
         cursor.close()
         session.close()
     return data
-#def get_chanye2code():
-#    dir_path = os.path.dirname(os.path.realpath(__file__))
-#    index  = dir_path.find('/web')
-#    web_path = dir_path[0:index + 5]
-#    csv_path = os.path.join(web_path,'plugins_chanyeku/chanye2code.csv')
-#    data = pd.read_csv(csv_path)
-#    return data
+def get_chanye2code():
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    index  = dir_path.find('/web')
+    web_path = dir_path[0:index + 5]
+    csv_path = os.path.join(web_path,'plugins_chanyeku/chanye2code.csv')
+    data = pd.read_csv(csv_path)
+    return data
 payload = ""
 headers = {}
 #f = open('/devdata/home/user/panyongcan/Project/llama_web_font/web/plugins_chanyeku/industry2code.pkl','rb')
@@ -98,7 +98,7 @@ def get_chanyeruoshi(city_name,chanye=''):
     ##cy_paiming_str = '\n'.join(youshi_paiming + lieshi_paiming)
     #cy_paiming_str = '\n'.join(youshi_paiming)
     answer = f"""{city_name}当前存在的弱势产业共有{len(lieshi)}条，分别是{','.join(lieshi)}。"""
-    if not lieshi:
+    if not paiming:
         answer = ''
     return answer
 if __name__ == '__main__':
