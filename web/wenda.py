@@ -310,7 +310,29 @@ class AsyncContextManager:
 
 
 Lock = AsyncContextManager
-
+def build_wechat_history(history_formatted):
+    history_data = []
+    if history_formatted is not None:
+        for i, old_chat in enumerate(history_formatted):
+            if 'question' in old_chat:
+                #if old_chat['role'] == "user":
+                history_data.append(
+                    {"role": "user", "content": old_chat['question']})
+            if 'answer' in old_chat:
+                #if old_chat['role'] == "user":
+                history_data.append(
+                    #{"role": "user", "content": old_chat['question']})
+                    #{"role": "assistant", "content": old_chat['content']},)
+                    {"role": "assistant", "content": old_chat['answer']},)
+                    #{"role": "AI", "content": old_chat['answer']},)
+            #    elif old_chat['role'] == "AI" or old_chat['role'] == 'assistant':
+            #        if i > len(history_formatted) - 4:
+            #            history_data.append(
+            #                {"role": "assistant", "content": old_chat['content']},)
+            #else:
+            #    history_data.append({"role":"user","content":old_chat["question"]})
+            #    history_data.append({"role":"assistant","content":old_chat["answer"]})
+    return history_data
 
 @app.websocket('/ws')
 async def websocket_endpoint(websocket: WebSocket):
@@ -336,13 +358,16 @@ async def websocket_endpoint(websocket: WebSocket):
         # {'file_path': '', 'file_path_time': '', 'question': '北京市今年发展情况怎么样'}
         #{'file_path': '', 'file_path_time': '', 'question': '北京市今年发展情况详解', 'history': [{'question': '北京市今年发展情况详解', 'answer': "错误'role'"}, {'question': '北京市今年发展情况怎么样', 'answer': '错误'}]}
         if 'question' in data:
+            #import ipdb
+            #ipdb.set_trace()
             if 'prompt' not in data:
                 data['prompt'] = data['question']
             if 'history' in data:
                 #import ipdb
                 #ipdb.set_trace()
                 print(1)
-                data['history'] = []
+                #data['history'] = []
+                data['history'] = build_wechat_history(data['history'])
             
 
         if 'history' not in data:
