@@ -333,6 +333,30 @@ def build_wechat_history(history_formatted):
             #    history_data.append({"role":"user","content":old_chat["question"]})
             #    history_data.append({"role":"assistant","content":old_chat["answer"]})
     return history_data
+def build_gov_history(history_formatted):
+    history_data = []
+    if history_formatted is not None:
+        for i, old_chat in enumerate(history_formatted):
+            #if 'question' in old_chat:
+            if 'role' in old_chat:
+                if old_chat['role'] == "user":
+                    history_data.append(
+                        {"role": "user", "content": old_chat['question']})
+            #if 'answer' in old_chat:
+            #    #if old_chat['role'] == "user":
+            #    history_data.append(
+            #        #{"role": "user", "content": old_chat['question']})
+            #        #{"role": "assistant", "content": old_chat['content']},)
+            #        {"role": "assistant", "content": old_chat['answer']},)
+            #        #{"role": "AI", "content": old_chat['answer']},)
+                elif old_chat['role'] == "AI" or old_chat['role'] == 'assistant':
+                    if i > len(history_formatted) - 4:
+                        history_data.append(
+                            {"role": "assistant", "content": old_chat['content']},)
+            #else:
+            #    history_data.append({"role":"user","content":old_chat["question"]})
+            #    history_data.append({"role":"assistant","content":old_chat["answer"]})
+    return history_data
 
 @app.websocket('/ws')
 async def websocket_endpoint(websocket: WebSocket):
@@ -352,6 +376,9 @@ async def websocket_endpoint(websocket: WebSocket):
             f.close()
             await websocket.send_text("学习已经完成")
             await websocket.close()
+            import ipdb
+            ipdb.set_trace()
+            data['history'] = build_gov_history(data['history'])
             return ""
         #import ipdb
         #ipdb.set_trace()
@@ -362,12 +389,12 @@ async def websocket_endpoint(websocket: WebSocket):
             #ipdb.set_trace()
             if 'prompt' not in data:
                 data['prompt'] = data['question']
-            if 'history' in data:
-                #import ipdb
-                #ipdb.set_trace()
-                print(1)
-                #data['history'] = []
-                data['history'] = build_wechat_history(data['history'])
+            #if 'history' in data:
+            #    #import ipdb
+            #    #ipdb.set_trace()
+            #    print(1)
+            #    #data['history'] = []
+            data['history'] = build_wechat_history(data['history'])
             
 
         if 'history' not in data:

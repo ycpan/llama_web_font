@@ -629,6 +629,10 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
     #plan_history_data = plan_history_data[::-1]
     print(history_data)
     content = ''.join([x['content'] for x in plan_history_data])
+
+    is_file = False
+    if '学习已经完成' in history_formatted_str:
+        is_file = True
     if len(content) > 7000:
         #import ipdb
         #ipdb.set_trace()
@@ -652,6 +656,8 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
     {'获取数据': [['从企业数据库中获取数据:北京专精特新企业的企业名称，产业，企业类型'], ['查询搜索引擎:北京专精特新企业']], '生成答案': ['获取答案的前缀', '将答案和前缀进行组合输出'], '评价答案': []}
         """
         #xy = 2/0 
+        if is_file:
+            output = str({'type': 'step', 'content': {'获取数据': [[['搜索文件:{}'.format(prompt), f'查询搜索引擎:{prompt}']]], '生成答案': ['将答案与模型进行结合'], '评价答案': []}})
         output = eval(output)
         init_question = output['init_question']
         #output['获取数据']=[['搜索引擎:{}'.format(prompt)]]
