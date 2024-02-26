@@ -619,6 +619,9 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
     #ipdb.set_trace()
     #history_data = transform_openai2llama2(history_data)
     prompt = prompt.strip()
+    is_file = False
+    if '学习已经完成' in str(history_formatted):
+        is_file = True
     plan_question = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，针对以下问题，生成相应的解决问题的计划与步骤:\n' + prompt
     #plan_question = plan_question.strip()
     #plan_history_data = copy.deepcopy(history_data)
@@ -630,9 +633,6 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
     print(history_data)
     content = ''.join([x['content'] for x in plan_history_data])
 
-    is_file = False
-    if '学习已经完成' in history_formatted_str:
-        is_file = True
     if len(content) > 7000:
         #import ipdb
         #ipdb.set_trace()

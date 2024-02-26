@@ -376,12 +376,12 @@ async def websocket_endpoint(websocket: WebSocket):
             f.close()
             await websocket.send_text("学习已经完成")
             await websocket.close()
-            import ipdb
-            ipdb.set_trace()
-            data['history'] = build_gov_history(data['history'])
             return ""
         #import ipdb
         #ipdb.set_trace()
+        import ipdb
+        ipdb.set_trace()
+        data['history'] = build_gov_history(data['history'])
         # {'file_path': '', 'file_path_time': '', 'question': '北京市今年发展情况怎么样'}
         #{'file_path': '', 'file_path_time': '', 'question': '北京市今年发展情况详解', 'history': [{'question': '北京市今年发展情况详解', 'answer': "错误'role'"}, {'question': '北京市今年发展情况怎么样', 'answer': '错误'}]}
         if 'question' in data:
