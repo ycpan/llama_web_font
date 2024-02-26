@@ -136,9 +136,15 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
                     #solution_bak_data = {solution_exec:solution_data}
                     solution_bak_data = str(solution_data)
                     #break
-        if '搜索引擎' in solution_type:
+        #if 'document' in solution_type:
+        if '搜索文件' in solution_type:
             #import ipdb
             #ipdb.set_trace()
+            solution_prompt = solution_exec
+            solution_data = zhishiku.zsk[2]['zsk'].find(solution_prompt) #搜索引擎
+            if solution_data:
+                solution_bak_data = solution_data
+        if '搜索引擎' in solution_type:
             solution_prompt = solution_exec
             #solution_data = zhishiku.zsk[1]['zsk'].find(solution_prompt) #mysql 缓存
             #import ipdb
@@ -657,7 +663,7 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
         """
         #xy = 2/0 
         if is_file:
-            output = str({'type': 'step', 'content': {'获取数据': [[['搜索文件:{}'.format(prompt), f'查询搜索引擎:{prompt}']]], '生成答案': ['将答案与模型进行结合'], '评价答案': []}})
+            output = str({'type': 'step', 'content': {'获取数据': [[['搜索文件:{}'.format(prompt), f'查询搜索引擎:{prompt}']]], '生成答案': ['将答案与模型进行结合'], '评价答案': []},'init_question':prompt})
         output = eval(output)
         init_question = output['init_question']
         #output['获取数据']=[['搜索引擎:{}'.format(prompt)]]

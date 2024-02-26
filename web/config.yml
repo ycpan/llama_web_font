@@ -2,9 +2,9 @@ logging: False
 #日志
 logging_path: "sqlite:///../record.db?check_same_thread=False"
 # 日志地址 可以连接远程mysql服务器：'mysql+pymysql://root:123456@localhost:3306/db?charset=utf8'
-#port: 17860
+port: 17860
 #port: 17865
-port: 17862
+#port: 17862
 #webui 默认启动端口号"
 library:
    #strategy: "calc:2 rtst:2 agents:0"
@@ -107,7 +107,8 @@ librarys:
    document:
       count: 5
       #最大抽取数量
-      knowledge_path: "/devdata/home/user/panyongcan/Project/chat_web/llama_web_font/web/txt"
+      #knowledge_path: "/devdata/home/user/panyongcan/Project/chat_web/llama_web_font/web/txt"
+      knowledge_path: "./txt"
       #知识库的文件夹目录名称，若留空则为txt
       graph_host: ""
       #图数据库部署地址
