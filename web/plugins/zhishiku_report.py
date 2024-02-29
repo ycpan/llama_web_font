@@ -6,7 +6,11 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.styles import getSampleStyleSheet,ParagraphStyle
 import reportlab.lib.fonts
 import json
-pdfmetrics.registerFont(TTFont('SimHei', './fonts/SimHei.ttf'))
+import os
+dir_path = os.path.dirname(os.path.realpath(__file__))
+font_path = os.path.join(dir_path,'./fonts/SimHei.ttf')
+#pdfmetrics.registerFont(TTFont('SimHei', './fonts/SimHei.ttf'))
+pdfmetrics.registerFont(TTFont('SimHei', font_path))
 
 stylesheet=getSampleStyleSheet()
 stylesheet.add(ParagraphStyle(fontName='SimHei', name='hei', leading=20, fontSize=12))
