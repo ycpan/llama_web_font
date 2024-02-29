@@ -105,14 +105,32 @@ class batchSql:
                     docid = item['docid']
                     result.append((','.join(tags),docid))
 
-host = '10.0.0.11'
+#host = '10.0.0.11'
+#port = 3306
+#user = 'root'
+#passwd = 'Incostar@2021'
+#db_name = 'algorithm_app'
+#db_name = 'algorithm'
+host = '10.0.0.14'
 port = 3306
 user = 'root'
 passwd = 'Incostar@2021'
 db_name = 'algorithm_app'
-#db_name = 'algorithm'
 my_sql = batchSql(host,port,user,passwd,db_name)
-batch_sql =  "INSERT INTO llm_web(code,question,query_web,content,answer,evaluation) VALUES(%s,%s,%s,%s,%s,%s)"
+#batch_sql =  "INSERT INTO llm_web(code,question,query_web,content,answer,evaluation) VALUES(%s,%s,%s,%s,%s,%s)"
+#
+#| time           | datetime     | YES  |     | NULL    | on update CURRENT_TIMESTAMP |
+#| question       | tinytext     | YES  |     | NULL    |                             |
+#| agent_response | text         | YES  |     | NULL    |                             |
+#| context_data   | longtext     | YES  |     | NULL    |                             |
+#| final_response | text         | YES  |     | NULL    |                             |
+#| feedback       | varchar(255) | YES  |     | NULL    |                             |
+#| source         | varchar(255) | YES  |     | NULL    |                             |
+#| userid         | int(11)      | YES  |     | NULL    |                             |
+#| username
+#
+#batch_sql =  "INSERT INTO llm_log(question,agent_response,query_web,context_data,final_response,feedback,source) VALUES(%s,%s,%s,%s,%s,%s,%s)"
+batch_sql =  "INSERT INTO llm_log(question,agent_response,context_data,final_response,is_normal) VALUES(%s,%s,%s,%s,%s)"
 my_sql.set_batch_sql(batch_sql)
 def find(s,step=0):
     code = get_md5(s)
@@ -129,8 +147,11 @@ def find_by_sql(query_sql,step=0):
         return data
     return data
 def save(question,query_web,content,answer,evaluation):
+    #import ipdb
+    #ipdb.set_trace()
     code = get_md5(question)
-    value = (code,question,query_web,content,answer,evaluation)
+    #value = (code,question,query_web,content,answer,evaluation)
+    value = (question,query_web,content,answer,evaluation)
     my_sql.add_value(value)
     my_sql.batch_execute()
 if __name__ == '__main__':

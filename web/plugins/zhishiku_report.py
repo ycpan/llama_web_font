@@ -13,22 +13,30 @@ stylesheet.add(ParagraphStyle(fontName='SimHei', name='hei', leading=20, fontSiz
 
 
 reportlab.platypus.tables.CellStyle.fontname='SimHei'
+file_path = ''
+report = None
 def report(report_data):
+    global file_path
     report_data = eval(report_data)
-    file_path ="industry_report.pdf"
+    #file_path ="industry_report.pdf"
     # 创建PDF文档的基础类实例
     #import ipdb
     #ipdb.set_trace()
     biaoti = report_data[0]['content']
-    report = SimpleDocTemplate(f"report/{biaoti}.pdf", pagesize=letter)
+    file_path = f"report/{biaoti}.pdf"
     #report = SimpleDocTemplate(file_path, pagesize=letter)
     #keys = ['标题','摘要','数据','结论']
     res = []
+    import ipdb
+    ipdb.set_trace()
     for da in report_data:
         #raw_data = report_data[key]
         da_content,da_type = da['content'],da['type']
         sub_res = create_report_content(da_content,da_type)
         res.extend(sub_res)
+    return res
+def build(res):
+    report = SimpleDocTemplate(file_path, pagesize=letter)
     report.build(res)
     return file_path
 # 创建PDF的内容

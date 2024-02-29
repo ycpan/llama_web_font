@@ -96,7 +96,10 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
             #solution_output = get_agent(solution_prompt)
             #solution_output = "select `企业名称`,`企业类型`,`产业` from `企业数据` where  城市 like '%景德%' limit 10;"
             print(solution_exec + ':' + solution_output)
-            solution_bak_data = zhishiku.zsk[1]['zsk'].find_by_sql(solution_output)
+            #solution_bak_data = zhishiku.zsk[1]['zsk'].find_by_sql(solution_output)
+            #import ipdb
+            #ipdb.set_trace()
+            solution_bak_data = zhishiku.zsk[9]['zsk'].find_by_sql(solution_output)
             if solution_bak_data:
                 #solution_bak_data = {solution_exec:solution_bak_data}
                 solution_bak_data = str(solution_bak_data) 
@@ -270,7 +273,7 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku,init
         if '获取答案的前缀' in current:
         #if '前缀' in current:
             #solution_prompt = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，针对以下问题，生成相应的回答前缀:\n' + prompt
-            solution_prompt = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，针对以下问题，生成相应的回答前缀:\n' + init_question
+            solution_prompt = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，针对以下问题，生成相应的回答前缀:\n' + prompt
             #import ipdb
             #ipdb.set_trace()
             plan_history_data = get_plan_history(history_data)
@@ -309,8 +312,22 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku,init
             #answer = get_answer_with_context(init_question,'\n'.join(solution_data),[],instruction)
             answer = get_answer_with_context(init_question,str(solution_data),[],instruction)
             break
+        if '合并报告' in current:
+            #import ipdb
+            #ipdb.set_trace()
+            file_path = zhishiku.zsk[8]['zsk'].build(solution_data)
+            #report_data[key] = sub_report_data
+            #report_data = generate_llm_report_data(solution_data)
+            #report_data = solution_data
+            #report_path = zhishiku.zsk[10]['zsk'].report(report_data)
+            net_file_path = f'http://10.0.0.12:17866/download?file_name={file_path}'
+            answer = net_file_path
+            break
         if '生成pdf报告' in current:
-            #solution_data = '\n'.join(current)
+            #import ipdb
+            #ipdb.set_trace()
+            if ':' in current:
+                _,init_question = current.split(':')
             #import ipdb
             #ipdb.set_trace()
             keys = ['标题','摘要','数据','结论']
@@ -328,12 +345,14 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku,init
             #sub_report_data = get_llm(context_data)
             sub_report_data = get_zhishiku_llm(solution_prompt)
             #sub_report_data = eval(sub_report_data)
-            file_path = zhishiku.zsk[8]['zsk'].report(sub_report_data)
-            #report_data[key] = sub_report_data
-            #report_data = generate_llm_report_data(solution_data)
-            #report_data = solution_data
-            #report_path = zhishiku.zsk[10]['zsk'].report(report_data)
-            answer = report_path
+            #file_path = zhishiku.zsk[8]['zsk'].report(sub_report_data)
+            ##report_data[key] = sub_report_data
+            ##report_data = generate_llm_report_data(solution_data)
+            ##report_data = solution_data
+            ##report_path = zhishiku.zsk[10]['zsk'].report(report_data)
+            #net_file_path = f'http://10.0.0.12:17866/download?file_name={file_path}'
+            #answer = net_file_path
+            answer = sub_report_data
             break
         if '将数据合并成一个字符串' in current:
             #solution_data = str(solution_data)
@@ -544,7 +563,7 @@ def decomposer_plan(output,prompt,history_data,zhishiku,chanyeku,init_question):
         #import ipdb
         #ipdb.set_trace()
         current_output = eval(current_output)
-        current_output['content']['生成答案']=['生成pdf报告'] 
+        #current_output['content']['生成答案']=['生成pdf报告'] 
         plan_data = execution(current_output,prompt,history_data,zhishiku,chanyeku,init_question)
         #solution_data = get_step_output(current_output,zhishiku,chanyeku,prompt,history_data,return_stream=False)
         solution_datas.append(plan_data)
@@ -656,6 +675,8 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
     solution_data = ''
     #import ipdb
     #ipdb.set_trace()
+    final_answer = ''
+    is_normal = 1
     try:
         """
 "{'获取数据': ['从企业数据库中获取数据:获取位于景德镇珠山的企业,>给出企业名称，企业类型,产业', '查询搜索引擎:烟台企业'], '生成答案': [\"'从上述>列表中，选出企业列表'\"], '评价答案': []}"
@@ -707,36 +728,10 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
             answer = decomposer_plan(output,prompt,history_data,zhishiku,chanyeku,init_question)
         if output["type"] == "step" or output["type"]== "tools":
             answer = execution(output,prompt,history_data,zhishiku,chanyeku,init_question)
-            #output_type = output["type"]
-            #output = output['content']
-            #for step in steps: 
-            #    current_plan = output[step]
-            #    if step == '获取数据':
-            #        #import ipdb
-            #        #ipdb.set_trace()
-            #        if output_type == 'plan':
-            #            solution_datas = []
-            #            current_plan = current_plan[0:2]
-            #            for plan in current_plan:
-            #                if not isinstance(plan,str):
-            #                    if isinstance(plan,list):
-            #                        np_plan = np.array(plan)
-            #                        plan = np_plan.squeeze().tolist() 
-            #                plan_question = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，针对以下问题，生成相应的解决问题的计划与步骤:\n' + plan
-            #                current_output = get_agent(plan_question)
-            #                #import ipdb
-            #                #ipdb.set_trace()
-            #                current_output = eval(current_output)
-            #                solution_data = get_step_output(current_output,zhishiku,chanyeku,prompt,history_data,return_stream=False)
-            #                solution_datas.append(solution_data)
-            #            solution_data = solution_datas
-            #        else:
-            #            solution_data = get_solution_data(current_plan,zhishiku,chanyeku)
-            #    if step == '生成答案':
-            #        answer = generate_answer(solution_data,prompt,current_plan,history_data,zhishiku)
         if answer is None:
             raise ValueError('answer为None，抛出异常')
         if isinstance(answer,str):
+            final_answer = answer
             current_content = ''
             for token in answer.split('\n'):
                 current_content += token + '\n'
@@ -754,8 +749,10 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
                     continue
                 if len(chunk) > 2:
                     chunk = json.loads(chunk)
+                    final_answer = chunk["response"]
                     yield chunk["response"].replace('\n','<br />\n')
     except Exception as e:
+        is_normal = 0
         print(e)
         #response = completion_with_backoff(model="gpt-4-0613", messages=history_data, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
         #response = get_stream_llm(history_data)
@@ -784,11 +781,13 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
                 #import ipdb
                 #ipdb.set_trace()
                 chunk = json.loads(chunk)
+                final_answer = chunk["response"]
                 yield chunk["response"].replace('\n','<br />\n')
         #except:
         #    import ipdb
         #    ipdb.set_trace()
         #    print(1)
+    zhishiku.zsk[1]['zsk'].save(prompt,str(output),solution_data,final_answer,is_normal)
 
 
 chatCompletion = None

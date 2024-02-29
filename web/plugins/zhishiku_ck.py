@@ -29,8 +29,6 @@ class batchSql:
         #param_ck_bj['cursorclass'] = pyck.cursors.DictCursor
         self.param_ck_bj = param_ck_bj
         #self.connection= pyck.connect(**self.param_ck_bj)
-        import ipdb
-        ipdb.set_trace()
         #self.connection = connect(**self.param_ck_bj)
         #host = '10.0.0.25'
         #port = 8123
@@ -90,8 +88,6 @@ class batchSql:
     def query_data(self,query_sql):
         query_sql = text(query_sql)
         res = []
-        import ipdb
-        ipdb.set_trace()
         try:
             with make_session(self.connection) as session:
                 cursor = session.execute(query_sql)
@@ -158,8 +154,6 @@ def find(s,step=0):
         return data[0]['content']
     return data
 def find_by_sql(query_sql,step=0):
-    import ipdb
-    ipdb.set_trace()
     data = my_sql.query_data(query_sql)
     if len(data) > 0:
         return data

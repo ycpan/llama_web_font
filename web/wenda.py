@@ -1,6 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import time
 from starlette.requests import Request
+from starlette.responses import FileResponse
 from fastapi.middleware.wsgi import WSGIMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -510,7 +511,16 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         pass
     waiting_threads -= 1
-
+@app.get("/download", summary="下载文件")
+async def download_file(file_name):
+    #data = request.json
+    #file_name = '下面是烟台分布的图表.pdf'
+    #file_path = os.path.join('./report',file_name)
+    file_path = file_name
+    if os.path.isfile(file_path):
+        return FileResponse(file_path, filename=file_name)
+    else:
+        return f"请求的文件《{file_name}》不存在"
 
 @app.get("/")
 async def index(request: Request):

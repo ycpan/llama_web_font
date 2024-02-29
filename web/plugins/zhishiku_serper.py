@@ -23,7 +23,8 @@ from aiohttp import client_exceptions
 nest_asyncio.apply()
 model_name = settings.librarys.qdrant.model_path
 #SERPER_API_KEY=os.getenv("d50d0b2ff04a3bc6ed8101333204d3d0c3281039")
-SERPER_API_KEY="d50d0b2ff04a3bc6ed8101333204d3d0c3281039"
+#SERPER_API_KEY="d50d0b2ff04a3bc6ed8101333204d3d0c3281039"
+SERPER_API_KEY="30cf75a7780fd607cf608b1c7107d95102660a51"
 g = Goose({'target_language':'zh_cn','browser_user_agent': 'Version/5.1.2 Safari/534.52.7','stopwords_class': StopWordsChinese})
 model_kwargs = {'device': settings.librarys.qdrant.device}
 encode_kwargs = {'normalize_embeddings': False}
