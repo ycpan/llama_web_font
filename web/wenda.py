@@ -312,6 +312,7 @@ class AsyncContextManager:
 
 Lock = AsyncContextManager
 def build_wechat_history(history_formatted):
+    history_formatted = history_formatted[::-1]
     history_data = []
     if history_formatted is not None:
         for i, old_chat in enumerate(history_formatted):
@@ -437,7 +438,10 @@ async def websocket_endpoint(websocket: WebSocket):
             #    #ipdb.set_trace()
             #    print(1)
             #    #data['history'] = []
-            data['history'] = build_wechat_history(data['history'])
+            if 'history' in data:
+                data['history'] = build_wechat_history(data['history'])
+            else:
+                data['history'] = []
         else:
             """
             web 端
