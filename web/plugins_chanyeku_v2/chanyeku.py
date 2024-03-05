@@ -12,11 +12,6 @@ from .chanye_ruoshi import get_chanyeruoshi
 from .chanye_jianyi import get_chanyejianyi
 from .web_tools import get_weather as get_tianqi
 from .web_tools import get_baidu_news as get_xinwen
-from .chanye_xiangsi_chengshi import get_chanyexiangsichengshi 
-from .chanye_qushi import get_chanyequshi
-#data = get_chanyequshi(city_name='江苏',chanye='新能源')
-#data = get_chanyexiangsichengshi('烟台','新能源')
-#data  = get_qiyezhongdian(city_name='江苏',chanye='新能源')
 def chanye(content_type):
     chanye = None
     #if 'zhenduan' in chanye_type:

@@ -268,6 +268,9 @@ def get_prod_llm_output_fast(input_str):
       "model": "internlm2-chat-7b",
       #"messages": [{"role": "user", "content": input_str}],
       "messages": input_messages,
+      "temperature":0.6,
+      "repetition_penalty":1.1,
+      "top_p":0.6,
       #"stream":True
       "stream":False
     }

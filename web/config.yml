@@ -10,7 +10,8 @@ port: 17866
 library:
    #strategy: "calc:2 rtst:2 agents:0"
    #strategy:  "serper:6 mysql:5 bingfull:5 wn:4 sogowx:3 univeralsearch:2 bingsite:2 qdrant:1 agents:0"
-   strategy:  "serper:6 mysql:5 document:5 wn:4 sogowx:3 univeralsearch:2 bingsite:2 qdrant:1 report:0 ck:0 agents:0"
+   #strategy:  "serper:6 mysql:5 document:5 wn:4 sogowx:3 univeralsearch:2 bingsite:2 qdrant:1 report:0 ck:0 agents:0"
+   strategy:  "remote:6 mysql:5 document:5 wn:4 sogowx:3 univeralsearch:2 bingsite:2 qdrant:1 report:0 ck:0 agents:0"
    #库参数，每组参数间用空格分隔，冒号前为知识库类型，后为抽取数量。
 
    #知识库类型:

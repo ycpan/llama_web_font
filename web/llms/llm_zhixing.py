@@ -19,9 +19,10 @@ from .llm_remote import get_prod_stream_with_openapi as get_stream_llm
 #from .llm_remote import get_zhishiku_stream_with_openapi as get_stream_llm
 #from .llm_remote import get_prod_stream_llm as get_stream_llm
 #from .llm_remote import get_dev_llm_output as get_llm
-#from .llm_remote import get_prod_llm_output_fast as get_llm
-from .llm_remote import get_dev_llm_output_fast as get_llm
-from .llm_remote import get_dev_llm_output_fast as get_zhishiku_llm
+from .llm_remote import get_prod_llm_output_fast as get_llm
+from .llm_remote import get_prod_llm_output_fast as get_zhishiku_llm
+##from .llm_remote import get_dev_llm_output_fast as get_llm
+##from .llm_remote import get_dev_llm_output_fast as get_zhishiku_llm
 #from .llm_remote import get_zhishiku_output_fast as get_zhishiku_llm
 #from .llm_remote import get_prod_llm as get_llm
 from plugins.common import settings
@@ -117,6 +118,8 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
             #    solution_bak_data = {solution_exec:solution_bak_data}
             #    #break
         if '使用工具' in solution_type:
+            #import ipdb
+            #ipdb.set_trace()
             li = solution_exec.split('\t')
             fun,paramater = li[0],li[1:]
             #paramater = [str(x)  for x in paramater ]
@@ -312,7 +315,7 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku,init
             #answer = get_answer_with_context(init_question,'\n'.join(solution_data),[],instruction)
             answer = get_answer_with_context(init_question,str(solution_data),[],instruction)
             break
-        if '合并报告' in current:
+        if '合并报告' in current or current=='生成pdf报告':
             #import ipdb
             #ipdb.set_trace()
             file_path = zhishiku.zsk[8]['zsk'].build(solution_data)
@@ -337,7 +340,8 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku,init
                 #context_data = str(solution_data) + f'针对上述内容，生成报告的{key}'
                 #context_data = '\n'.join(solution_data) + f'针对上述内容，生成报告的{key}'
             instruction = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，请对以下问题进行回答，并生成产业报告的格式:"
-            solution_prompt = instruction + '\n' + str(solution_data) + ' ' + init_question
+            #solution_prompt = instruction + '\n' + str(solution_data) + ' ' + init_question
+            solution_prompt = instruction + '\n' + str(solution_data[0:2]) + ' ' + init_question
             solution_prompt = solution_prompt.strip()
             #answer = get_answer_with_context(solution_prompt,'\n'.join(solution_data),[])
             #context_data = instruction + '\n' + '\n'.join(solution_data) 
@@ -346,13 +350,14 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku,init
             sub_report_data = get_zhishiku_llm(solution_prompt)
             #sub_report_data = eval(sub_report_data)
             #file_path = zhishiku.zsk[8]['zsk'].report(sub_report_data)
+            sub_report_data_answer = zhishiku.zsk[8]['zsk'].report(sub_report_data)
             ##report_data[key] = sub_report_data
             ##report_data = generate_llm_report_data(solution_data)
             ##report_data = solution_data
             ##report_path = zhishiku.zsk[10]['zsk'].report(report_data)
             #net_file_path = f'http://10.0.0.12:17866/download?file_name={file_path}'
             #answer = net_file_path
-            answer = sub_report_data
+            answer = sub_report_data_answer
             break
         if '将数据合并成一个字符串' in current:
             #solution_data = str(solution_data)
@@ -380,8 +385,14 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku,init
                 if isinstance(solution_data,list):
                     solution_data = solution_data[0]
                     if isinstance(solution_data,str):
-                        solution_data = eval(solution_data)
-                    solution_data = pd.DataFrame(solution_data)
+                        try:
+                            solution_data = eval(solution_data)
+                        except:
+                            pass
+                    try:
+                        solution_data = pd.DataFrame(solution_data)
+                    except:
+                        pass
                 if isinstance(solution_data,pd.DataFrame):
                     if len(solution_data) == 1 and len(solution_data.columns) == 1: 
                         answer = prefix + solution_data.to_string(index=False,header=False)
@@ -411,6 +422,7 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku,init
             #solution_prompt = instruction + '\n' + init_question
             #solution_prompt = solution_prompt.strip()
             answer = get_answer_with_context(init_question,str(solution_data),[],instruction)
+            #answer = get_answer_with_context(init_question,str(solution_data),[],instruction)
             #answer = get_answer_with_context(prompt,'\n'.join(solution_data),[])
             #else:
             #    solution_data = get_web_data(prompt,zhishiku)
@@ -568,7 +580,10 @@ def decomposer_plan(output,prompt,history_data,zhishiku,chanyeku,init_question):
         #solution_data = get_step_output(current_output,zhishiku,chanyeku,prompt,history_data,return_stream=False)
         solution_datas.append(plan_data)
     solution_data = solution_datas
-    return solution_data
+    plan = output['生成答案']
+    answer = generate_answer(solution_data,prompt,plan,history_data,zhishiku,init_question)
+    #return solution_data
+    return answer
 
 def execution(output,prompt,history_data,zhishiku,chanyeku,init_question):
     """

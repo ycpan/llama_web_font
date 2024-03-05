@@ -59,6 +59,8 @@ def get_chanyeruoshi(city_name,chanye=''):
     lieshi = {}
     sql = f"select `城市`,`产业`,`产业节点`,`排名` from `产业诊断` where `城市` like '%{city_name}%';"
     data = get_ck_data(sql)
+    import ipdb
+    ipdb.set_trace()
     chanye_rank = {}
     for _,da in data.iterrows():
         cy = da['产业']
@@ -87,6 +89,7 @@ def get_chanyeruoshi(city_name,chanye=''):
     #    youshi[cy]=paiming
     #    #else:
     #    #    lieshi[cy]=paiming
+    #youshi_sorted = sorted(youshi.items(),key=lambda k:k[1])
     #youshi_cy = [k for k,v in youshi_sorted]
     ##lieshi_sorted = sorted(lieshi.items(),key=lambda k:k[1])
     ##lieshi_cy = [k for k,v in lieshi_sorted]
@@ -98,18 +101,14 @@ def get_chanyeruoshi(city_name,chanye=''):
     #cy_paiming_str = '\n'.join(youshi_paiming)
     answer = f"""{city_name}当前存在的弱势产业共有{len(lieshi)}条，分别是{','.join(lieshi)}。"""
     if not lieshi:
-        if  chanye_rank:
-            answer = f'{city_name}的各产业在全国排名都比较靠前，没有劣势产业'
-        else:
-            answer = ''
-        #chanye_rank_sorted = sorted(chanye_rank.items(),key=lambda k:k[1])
-        #lieshi = [k for k,v in chanye_rank_sorted[-random.randint(3,8):] if k != '全部产业链']
-        #answer = f"""{city_name}的产业在全国范围内，都比较领先，在排名前30之前。从{city_name}内各产业进行比较，相对弱势的有共有{len(lieshi)}条，分别是{','.join(lieshi)}。"""
+        answer = ''
     return answer
 if __name__ == '__main__':
     city_name='烟台'
+    city_name='郑州'
     chanye='新能源'
-    data = get_chanyeruoshi(city_name='烟台',chanye='新能源')
-    data = get_chanyeruoshi(city_name='郑州',chanye='新能源')
+    #data = get_chanyeruoshi(city_name='烟台',chanye='新能源')
+    #data = get_chanyeruoshi(city_name='郑州',chanye='新能源')
+    data = get_chanyeruoshi(city_name='青岛',chanye='新能源')
     #data = get_chanyepaiming(city_name='北京',chanye='新能源')
     print(data)

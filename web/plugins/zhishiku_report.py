@@ -21,7 +21,8 @@ file_path = ''
 report = None
 def report(report_data):
     global file_path
-    report_data = eval(report_data)
+    if isinstance(report_data,str):
+        report_data = eval(report_data)
     #file_path ="industry_report.pdf"
     # 创建PDF文档的基础类实例
     #import ipdb
@@ -75,8 +76,8 @@ def create_report_content(da_content,da_type):
         data_content = da_content['content']
         if not data_content or data_content==[[]]:
             return []
-        import ipdb
-        ipdb.set_trace()
+        #import ipdb
+        #ipdb.set_trace()
         if data_type == '分布':
             table = Table(data_content)
             table.setStyle(TableStyle([
