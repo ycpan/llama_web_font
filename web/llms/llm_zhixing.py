@@ -132,9 +132,10 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
                     solution_bak_data = str({solution_exec:solution_data})
                     #solution_bak_data = str(solution_data)
             else:
-                #paramater = ",".join([f"'{x}'" if isinstance(x,str) else str(x) for x in paramater])
-                ##fun,paramater = solution_exec.split('\t')
-                #solution_exec = fun + '(' + f'{paramater}' + ')'
+                if len(li) > 1:
+                    paramater = ",".join([f"'{x}'" if isinstance(x,str) else str(x) for x in paramater])
+                    ##fun,paramater = solution_exec.split('\t')
+                    solution_exec = fun + '(' + f'{paramater}' + ')'
                 solution_data = chanyeku.chanye(solution_exec)
                 if solution_data:
                     #is_break = True
