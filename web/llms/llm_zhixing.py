@@ -66,8 +66,8 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
             solution_data = answer
             #solution_data_res.append({solution_exec:solution_data})
             if solution_data:
-                #solution_bak_data = {solution_exec:solution_data}
-                solution_bak_data = solution_data
+                solution_bak_data = str({solution_exec:solution_data})
+                #solution_bak_data = solution_data
             #break
         if 'eval' in solution_type:
             #new_prompt = str(current_bak_data) + ' ' + solution_exec + '请回答是或否'
@@ -75,9 +75,9 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
             #answer = get_llm(new_prompt)
             #solution_data = answer
             ##solution_data_res.append({solution_exec:solution_data})
-            #solution_bak_data = {solution_exec:solution_data}
+            solution_bak_data = str({solution_exec:solution_data})
             ##break
-            solution_bak_data = current_bak_data
+            #solution_bak_data = current_bak_data
 
         if 'neo4j' in solution_type:
             solution_prompt = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，针对以下问题，生成相应的sql指令:\n" + solution_exec
@@ -87,8 +87,8 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
             solution_output = get_agent(solution_prompt)
             solution_bak_data = zhishiku.zsk[3]['zsk'].find_by_sql(solution_output)
             if solution_bak_data:
-                #solution_bak_data = {solution_exec:solution_bak_data}
-                solution_bak_data = str(solution_bak_data)
+                #solution_bak_data = str(solution_bak_data)
+                solution_bak_data = str({solution_exec:solution_bak_data})
         if '数据库' in solution_type:
             solution_prompt = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，针对以下问题，生成相应的sql指令:\n" + solution_exec
             #solution_prompt = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，请解决以下问题:\n" + solution_exec
@@ -102,8 +102,8 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
             #ipdb.set_trace()
             solution_bak_data = zhishiku.zsk[9]['zsk'].find_by_sql(solution_output)
             if solution_bak_data:
-                #solution_bak_data = {solution_exec:solution_bak_data}
-                solution_bak_data = str(solution_bak_data) 
+                #solution_bak_data = str(solution_bak_data) 
+                solution_bak_data = str({solution_exec:solution_bak_data})
             #solution_data_df = pd.DataFrame(solution_data)
             #if solution_data:
             #    if len(solution_data) == 1 and ('0' in str(solution_data) or 'None' in str(solution_data)):
@@ -115,32 +115,32 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
             #        solution_bak_data = solution_data_df['企业数量'][0]
 
             #    #solution_data_res.append({solution_exec:solution_data})
-            #    solution_bak_data = {solution_exec:solution_bak_data}
             #    #break
         if '使用工具' in solution_type:
             #import ipdb
             #ipdb.set_trace()
             li = solution_exec.split('\t')
             fun,paramater = li[0],li[1:]
-            #paramater = [str(x)  for x in paramater ]
+            paramater = [str(x)  for x in paramater ]
             if fun == 'python eval':
-                paramater = paramater[0]
-                solution_data = eval(paramater)
+                #paramater = paramater[0]
+                #solution_data = eval(paramater)
+                solution_data = eval(solution_exec)
                 if solution_data:
                     #solution_data_res.append({solution_exec:solution_data})
                     #break
-                    #solution_bak_data = {solution_exec:solution_data}
-                    solution_bak_data = str(solution_data)
+                    solution_bak_data = str({solution_exec:solution_data})
+                    #solution_bak_data = str(solution_data)
             else:
-                paramater = ",".join([f"'{x}'" if isinstance(x,str) else str(x) for x in paramater])
-                #fun,paramater = solution_exec.split('\t')
-                solution_exec = fun + '(' + f'{paramater}' + ')'
+                #paramater = ",".join([f"'{x}'" if isinstance(x,str) else str(x) for x in paramater])
+                ##fun,paramater = solution_exec.split('\t')
+                #solution_exec = fun + '(' + f'{paramater}' + ')'
                 solution_data = chanyeku.chanye(solution_exec)
                 if solution_data:
                     #is_break = True
                     #solution_data_res.append({solution_exec:solution_data})
-                    #solution_bak_data = {solution_exec:solution_data}
-                    solution_bak_data = str(solution_data)
+                    #solution_bak_data = str(solution_data)
+                    solution_bak_data = str({solution_exec:solution_data})
                     #break
         #if 'document' in solution_type:
         if '搜索文件' in solution_type:
@@ -149,7 +149,8 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
             solution_prompt = solution_exec
             solution_data = zhishiku.zsk[2]['zsk'].find(solution_prompt) #搜索引擎
             if solution_data:
-                solution_bak_data = solution_data
+                #solution_bak_data = solution_data
+                solution_bak_data = str({solution_exec:solution_data})
         if '搜索引擎' in solution_type:
             solution_prompt = solution_exec
             #solution_data = zhishiku.zsk[1]['zsk'].find(solution_prompt) #mysql 缓存
@@ -172,8 +173,8 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
                 #is_break = True
                 #break
                 #solution_data_res.append({solution_exec:solution_data})
-                #solution_bak_data = {solution_exec:solution_data}
-                solution_bak_data = solution_data
+                solution_bak_data = str({solution_exec:solution_data})
+                #solution_bak_data = solution_data
                 #break
         return solution_bak_data
     except Exception  as e:
@@ -257,8 +258,6 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku,init
     "{'获取数据': ['从企业数据库中获取数据:获取位于景德镇珠山的企业,>给出企业名称，企业类型,产业', '查询搜索引擎:烟台企业'], '生成答案': [\"'从上述>列表中，选出企业列表'\"], '评价答案': []}"
     {'获取数据': [['从企业数据库中获取数据:北京专精特新企业的企业名称，产业，企业类型'], ['查询搜索引擎:北京专精特新企业']], '生成答案': ['获取答案的前缀', '将答案和前缀进行组合输出'], '评价答案': []}
     """
-    #import ipdb
-    #ipdb.set_trace()
     #if isinstance(solution_data,list):
     #    solution_data = pd.DataFrame(solution_data)
     prefix = None
@@ -284,7 +283,8 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku,init
             #idx = prompt.find('企业')
             #new_prompt = prompt[0:idx+2]
             #solution_prompt = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，请结合给定的数据,解决以下问题:\n' + new_prompt
-            prefix = get_agent(solution_prompt)
+            #prefix = get_agent(solution_prompt)
+            prefix = get_agent(plan_history_data)
             ##prefix = get_agent(solution_prompt)
             #print('prefix:' + prefix)
             ##import ipdb
@@ -382,6 +382,8 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku,init
             if not prefix:
                  raise ValueError('没有获得答案，抛出异常，让生成式模型来获取答案')
             else:
+                #import ipdb
+                #ipdb.set_trace()
                 if isinstance(solution_data,list):
                     solution_data = solution_data[0]
                     if isinstance(solution_data,str):
@@ -389,6 +391,9 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku,init
                             solution_data = eval(solution_data)
                         except:
                             pass
+                    if isinstance(solution_data,dict):
+                        solution_data_value = list(solution_data.values())
+                        solution_data = solution_data_value[0]
                     try:
                         solution_data = pd.DataFrame(solution_data)
                     except:
