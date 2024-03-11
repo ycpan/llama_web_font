@@ -96,6 +96,20 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
             solution_output = get_agent(solution_prompt)
             #solution_output = get_agent(solution_prompt)
             #solution_output = "select `企业名称`,`企业类型`,`产业` from `企业数据` where  城市 like '%景德%' limit 10;"
+            #import ipdb
+            #ipdb.set_trace()
+            #new_solution_output =  solution_output.replace('select ','select distinct ').replace('地区','区域').replace(';','') 
+            new_solution_output =  solution_output.replace('地区','区域').replace(';','') 
+            prefix_li = new_solution_output.split('limit')
+            prefix,suffix = '',''
+            if len(prefix_li) == 2:
+                prefix,suffix = prefix_li
+                suffix = ' limit' + suffix
+            else:
+                prefix = prefix_li[0]
+                suffix = ''
+
+            solution_output = prefix + ' order by `产业评分` desc' + suffix + ';'
             print(solution_exec + ':' + solution_output)
             #solution_bak_data = zhishiku.zsk[1]['zsk'].find_by_sql(solution_output)
             #import ipdb
