@@ -92,6 +92,8 @@ def get_chanyejianyi(city_name,chanye=''):
         if cy not in chanye_rank:
             chanye_rank[cy] = []
         chanye_rank[cy].append(paiming)
+    import ipdb
+    ipdb.set_trace()
     for cy in chanye_rank:
         chanye_rank[cy]=int(sum(chanye_rank[cy])/len(chanye_rank[cy]))
 
@@ -151,6 +153,7 @@ if __name__ == '__main__':
     city_name='烟台'
     chanye='新能源'
     #data = get_chanyejianyi(city_name='烟台',chanye='新能源')
-    data = get_chanyejianyi(city_name='烟台')
+    #data = get_chanyejianyi(city_name='烟台')
+    data = get_chanyejianyi(city_name='榆林')
     #data = get_chanyepaiming(city_name='北京',chanye='新能源')
     print(data)

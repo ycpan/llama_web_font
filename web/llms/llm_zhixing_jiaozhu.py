@@ -103,21 +103,22 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
             #solution_prompt = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，请解决以下问题:\n" + solution_exec
             solution_prompt = solution_prompt.strip()
             solution_output = get_agent(solution_prompt)
-            import ipdb
-            ipdb.set_trace()
-            if 'limit' not in solution_output:
-                solution_output = solution_output.replace(';','') + ' limit 500;'
-            #new_solution_output =  solution_output.replace('地区','区域').replace(';','') 
-            #prefix_li = new_solution_output.split('limit')
-            #prefix,suffix = '',''
-            #if len(prefix_li) == 2:
-            #    prefix,suffix = prefix_li
-            #    suffix = ' limit' + suffix
-            #else:
-            #    prefix = prefix_li[0]
-            #    suffix = ''
+            #solution_output = get_agent(solution_prompt)
+            #solution_output = "select `企业名称`,`企业类型`,`产业` from `企业数据` where  城市 like '%景德%' limit 10;"
+            #import ipdb
+            #ipdb.set_trace()
+            #new_solution_output =  solution_output.replace('select ','select distinct ').replace('地区','区域').replace(';','') 
+            new_solution_output =  solution_output.replace('地区','区域').replace(';','') 
+            prefix_li = new_solution_output.split('limit')
+            prefix,suffix = '',''
+            if len(prefix_li) == 2:
+                prefix,suffix = prefix_li
+                suffix = ' limit' + suffix
+            else:
+                prefix = prefix_li[0]
+                suffix = ''
 
-            #solution_output = prefix + ' order by `产业评分` desc' + suffix + ';'
+            solution_output = prefix + ' order by `产业评分` desc' + suffix + ';'
             print(solution_exec + ':' + solution_output)
             #solution_bak_data = zhishiku.zsk[1]['zsk'].find_by_sql(solution_output)
             #import ipdb
@@ -261,17 +262,6 @@ def get_answer_with_context(prompt,context_data,history_data,instruction):
     #solution_prompt = context_data + '\n\n,从上述文本中，精确的选取有用的部分，回答下面的问题\n' + prompt
     if not isinstance(context_data,str):
         context_data = str(context_data)
-    if "'source':"  in context_data:
-        #"\'source\':" in context_data
-        #import ipdb
-        #ipdb.set_trace()
-        try:
-            context_json = eval(context_data)
-            context_json = eval(context_json[0])
-            context_json = list(context_json.values())[0]
-            context_data = '\n'.join([da['content'] for da in context_json])
-        except:
-            pass
     solution_prompt = context_data + ' ' + prompt
     #solution_prompt = context_data + '\n' + '上述文本是和问题相关的文本，请精确的回答下述问题,回答内容中不要出现"根据文本提供的内容"等类似字样:\n' + prompt
     #instruction = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，请回答以下问题:"
@@ -707,8 +697,8 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
     print(output)
     #output = get_agent(plan_history_data)
     solution_data = ''
-    import ipdb
-    ipdb.set_trace()
+    #import ipdb
+    #ipdb.set_trace()
     final_answer = ''
     is_normal = 1
     try:
@@ -770,130 +760,122 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
         #ipdb.set_trace()
         context_json = eval(context[0])
         context_json = list(context_json.values())[0]
-        if "'source':"  not in str(context_json):
-            if isinstance(answer,str):
-                final_answer = answer
-                current_content = ''
-                for token in answer.split('\n'):
-                    current_content += token + '\n'
-                    time.sleep(0.05)
-                    #yield current_content
-                    yield current_content.replace('\n','<br />\n')
-            else:
-                for chunk in answer:
-                    if '[DONE]' in chunk:
-                        continue
-                    if len(chunk) > 2:
-                        chunk = json.loads(chunk)
-                        final_answer = chunk["response"]
-                        yield chunk["response"].replace('\n','<br />\n')
+        context_json = eval(context_json)
+        content_li,source_li = [],[]
+        idx2url = {}
+        for idx,da in enumerate(context_json,0):
+            content = da['content']
+            url = da['source']
+            idx2url[idx]=url
+            sub_content_li = re.split('\n|。',content)
+            sub_content_li = [e for e in sub_content_li if len(e) > 2]
+            for element in sub_content_li:
+                content_li.append(element)
+                source_li.append(url)
+
+        assert len(source_li) == len(content_li)
+        #content_li_embedding = model.encode(content_li,return_dense=True, return_sparse=False, return_colbert_vecs=False,max_length=256)['dense_vecs']
+        content_li_embedding = get_embedding(content_li)
+        count_idx = {}
+        new_answer_li = []
+        md5_2_url = {}
+        if isinstance(answer,str):
+            final_answer = answer
+            current_content = ''
+            for token in answer.split('\n'):
+                current_content += token + '\n'
+                time.sleep(0.05)
+                #yield current_content
+                yield current_content.replace('\n','<br />\n')
         else:
-            #context_json = eval(context_json)
-            content_li,source_li = [],[]
-            previou_count = 0
-            idx2url = {}
-            for idx,da in enumerate(context_json,0):
-                content = da['content']
-                url = da['source']
-                idx2url[idx]=url
-                sub_content_li = re.split('\n|。',content)
-                sub_content_li = [e for e in sub_content_li if len(e) > 2]
-                for element in sub_content_li:
-                    content_li.append(element)
-                    source_li.append(url)
-
-            assert len(source_li) == len(content_li)
-            #content_li_embedding = model.encode(content_li,return_dense=True, return_sparse=False, return_colbert_vecs=False,max_length=256)['dense_vecs']
-            content_li_embedding = get_embedding(content_li)
-            count_idx = {}
-            new_answer_li = []
-            md5_2_url = {}
-            if isinstance(answer,str):
-                final_answer = answer
-                current_content = ''
-                for token in answer.split('\n'):
-                    current_content += token + '\n'
-                    time.sleep(0.05)
-                    #yield current_content
-                    yield current_content.replace('\n','<br />\n')
-            else:
-                for chunk in answer:
-                    #print(chunk)
-                    #if chunk['choices'][0]["finish_reason"]!="stop":
-                    #    if hasattr(chunk['choices'][0]['delta'], 'content'):
-                    #        resTemp+=chunk['choices'][0]['delta']['content']
-                    #        yield resTemp
-                    if '[DONE]' in chunk:
+            for chunk in answer:
+                #print(chunk)
+                #if chunk['choices'][0]["finish_reason"]!="stop":
+                #    if hasattr(chunk['choices'][0]['delta'], 'content'):
+                #        resTemp+=chunk['choices'][0]['delta']['content']
+                #        yield resTemp
+                if '[DONE]' in chunk:
+                    continue
+                if len(chunk) > 2:
+                    chunk = json.loads(chunk)
+                    current_answer = chunk["response"]
+                    if not current_answer:
                         continue
-                    if len(chunk) > 2:
-                        chunk = json.loads(chunk)
-                        current_answer = chunk["response"]
-                        print(current_answer)
-                        if not current_answer:
-                            continue
-                        current_count = current_answer.count('\n')
-                        if current_count > previou_count:
-                            # 表示一个或者多个换行符号
-                        #if '\n' in current_answer[-1]:
-                        #    sub_answer = current_answer.split('\n')[-2]
-                        #    if not sub_answer:
-                        #        if len(current_answer.split('\n')) > 2:
-                        #            sub_answer = current_answer.split('\n')[-3]
-                            sub_answer = current_answer.split('\n')[-(current_count - previou_count + 1)]
-                            if sub_answer not in ''.join(new_answer_li):
-                            #if not sub_answer:
-                            #    new_answer_li.append(sub_answer)
-                            #    continue
+                    if '\n' in current_answer[-1]:
+                        sub_answer = current_answer.split('\n')[-2]
+                        if not sub_answer:
+                            if len(current_answer.split('\n')) > 2:
+                                sub_answer = current_answer.split('\n')[-3]
+                        if sub_answer not in ''.join(new_answer_li):
+                        #if not sub_answer:
+                        #    new_answer_li.append(sub_answer)
+                        #    continue
 
-                                #sub_answer_li_embedding = model.encode([sub_answer],return_dense=True, return_sparse=False, return_colbert_vecs=False,max_length=256)['dense_vecs']
-                                sub_answer_li_embedding = get_embedding([sub_answer])
-                                #similarity =  sub_answer_li_embedding @ content_li_embedding.T
-                                similarity =  compute_simility_score(sub_answer_li_embedding,content_li_embedding)
-                                for simility_idx,sub_answer_similarity in enumerate(similarity):
-                                    sub_max_similarity_idx = np.argsort(sub_answer_similarity)[::-1][0]
-                                    sub_max_similarity = max(sub_answer_similarity)
-                                    assert sub_max_similarity == sub_answer_similarity[sub_max_similarity_idx]
-                                    simility_answer = sub_answer
-                                    simility_context = content_li[sub_max_similarity_idx]
-                                    #if sub_max_similarity > 0.86 and  len(new_answer_li) > 1:
-                                    if sub_max_similarity > 0.86 and  len(new_answer_li) > 1 and  sub_answer[-1] not in ['：',':']:
-                                        #answer_store_url_li[simility_idx].append(idx)
-                                        url = source_li[sub_max_similarity_idx]
-                                        url_md5 = get_md5(url)
-                                        if url_md5 not in count_idx:
-                                            counter = len(count_idx) + 1
-                                            count_idx[url_md5] = counter
-                                            md5_2_url[url_md5] = url
-                                        counter = count_idx[url_md5]
-                                            #第一句不加
-                                        sub_answer = sub_answer + f'**[来源参考:{counter}]({url})**'
-                                        print(f'{sub_max_similarity}\t\tanswer:{simility_answer}\t\tcontext:{simility_context}')
-                                    new_answer_li.append(sub_answer)
-                            for i in range(current_count - previou_count):
-                                new_answer_li.append('')
-                                previou_count = current_count
-                        final_answer = '\n'.join(new_answer_li) + '\n\n' + chunk["response"].split('\n')[-1]
-                        #import ipdb
-                        #ipdb.set_trace()
-                        sorted_count_idx = sorted(count_idx.items(),key= lambda k:k[1])
-                        suffix = []
-                        for url_md5,idx in sorted_count_idx:
-                            url = md5_2_url[url_md5]
-                            #suffix.append(f'[^{idx}]:{url}')
-                            suffix.append(f'[{idx}. {url}]({url})')
-                        #for idx in range(len(idx2url)):
-                        #    url = idx2url[idx]
-                        #    suffix.append(f'[^{idx}]:url')
-                        suffix_str = '\n\n'.join(suffix)
-                        #import ipdb
-                        #ipdb.set_trace()
-                        if suffix:
-                            final_answer = final_answer + '     \n\n>>**来源参考**\n\n' + suffix_str
-                        print(final_answer)
-                        #yield '\n'.join(new_answer_li).replace('\n','<br />\n')
-                        #yield new_answer.replace('\n','<br />\n')
-                        #yield chunk["response"].replace('\n','<br />\n')
-                        yield final_answer.replace('\n','<br />\n')
+                            #sub_answer_li_embedding = model.encode([sub_answer],return_dense=True, return_sparse=False, return_colbert_vecs=False,max_length=256)['dense_vecs']
+                            sub_answer_li_embedding = get_embedding([sub_answer])
+                            #similarity =  sub_answer_li_embedding @ content_li_embedding.T
+                            similarity =  compute_simility_score(sub_answer_li_embedding,content_li_embedding)
+                            for simility_idx,sub_answer_similarity in enumerate(similarity):
+                                sub_max_similarity_idx = np.argsort(sub_answer_similarity)[::-1][0]
+                                sub_max_similarity = max(sub_answer_similarity)
+                                assert sub_max_similarity == sub_answer_similarity[sub_max_similarity_idx]
+                                simility_answer = sub_answer
+                                simility_context = content_li[sub_max_similarity_idx]
+                                if sub_max_similarity > 0.86 and  len(new_answer_li) > 1:
+                                    #answer_store_url_li[simility_idx].append(idx)
+                                    url = source_li[sub_max_similarity_idx]
+                                    url_md5 = get_md5(url)
+                                    if url_md5 not in count_idx:
+                                        counter = len(count_idx) + 1
+                                        count_idx[url_md5] = counter
+                                        md5_2_url[url_md5] = url
+                                    counter = count_idx[url_md5]
+                                        #第一句不加
+                                    sub_answer = sub_answer + f'[^{counter}]'
+                                    print(f'{sub_max_similarity}\t\tanswer:{simility_answer}\t\tcontext:{simility_context}')
+                                new_answer_li.append(sub_answer)
+                                if '\n\n' in chunk["response"][-2:]:
+                                    if len(new_answer_li) == 0:
+                                        new_answer_li.append('')
+                                        new_answer_li.append('')
+                                    elif len(new_answer_li) == 1:
+                                        if new_answer_li[-1] != '':
+                                            new_answer_li.append('')
+                                            new_answer_li.append('')
+                                        else:
+                                            new_answer_li.append('')
+                                    elif new_answer_li[-1] != '' and new_answer_li[-2] != '':
+                                        new_answer_li.append('')
+                                        new_answer_li.append('')
+                                    elif new_answer_li[-1] != '' and new_answer_li[-2] != '':
+                                        new_answer_li.append('')
+                                elif '\n' in chunk["response"][-1]:
+                                    if len(new_answer_li) == 0:
+                                        new_answer_li.append('')
+                                    elif new_answer_li[-1] != '':
+                                        new_answer_li.append('')
+                        else:
+                            new_answer_li.append(sub_answer)
+                    final_answer = '\n'.join(new_answer_li) + chunk["response"].split('\n')[-1]
+                    #import ipdb
+                    #ipdb.set_trace()
+                    sorted_count_idx = sorted(count_idx.items(),key= lambda k:k[1])
+                    suffix = []
+                    for url_md5,idx in sorted_count_idx:
+                        url = md5_2_url[url_md5]
+                        suffix.append(f'[^{idx}]:{url}')
+                    #for idx in range(len(idx2url)):
+                    #    url = idx2url[idx]
+                    #    suffix.append(f'[^{idx}]:url')
+                    suffix_str = '\n\n'.join(suffix)
+                    #import ipdb
+                    #ipdb.set_trace()
+                    final_answer = final_answer + '\n\n' + suffix_str
+                    print(final_answer)
+                    #yield '\n'.join(new_answer_li).replace('\n','<br />\n')
+                    #yield new_answer.replace('\n','<br />\n')
+                    #yield chunk["response"].replace('\n','<br />\n')
+                    yield final_answer.replace('\n','<br />\n')
     except Exception as e:
         is_normal = 0
         print(e)

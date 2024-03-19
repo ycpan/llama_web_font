@@ -13,7 +13,8 @@ def find(search_query,step = 0):
     #host = cunnrent_setting.host
     host = "10.0.0.20"
     #url = "http://10.0.0.20:19329/v1/query?request=湖南专精特新政策"
-    url = f"http://{host}:19329/v1/query?request={search_query}"
+    #url = f"http://{host}:19329/v1/query?request={search_query}"
+    url = f"http://{host}:19328/v1/query?request={search_query}"
 
     payload = ""
     headers = {

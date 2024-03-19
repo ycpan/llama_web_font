@@ -61,14 +61,16 @@ def get_qiyeyinru(city_name='烟台',chanye=''):
     #    chanye_code=industrycode[chanye]
     #else:
     #    chanye_code = ''
+    import ipdb
+    ipdb.set_trace()
     chanye_code = get_chanyecode(chanye)
     if not chanye_code:
         return ''
     province,city = get_intergrity_from_str(city_name)
-    if not city:
-        return ''
     if province in '北京市天津市重庆市上海市':
         city = province
+    if not city:
+        return ''
     payload = json.dumps({
       "industryCode": chanye_code,
       #"parentAreaName": "河南省",
