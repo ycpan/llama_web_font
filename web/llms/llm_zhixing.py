@@ -103,8 +103,8 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
             #solution_prompt = "你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题>解决专家，请解决以下问题:\n" + solution_exec
             solution_prompt = solution_prompt.strip()
             solution_output = get_agent(solution_prompt)
-            import ipdb
-            ipdb.set_trace()
+            #import ipdb
+            #ipdb.set_trace()
             if 'limit' not in solution_output:
                 solution_output = solution_output.replace(';','') + ' limit 500;'
             #new_solution_output =  solution_output.replace('地区','区域').replace(';','') 
@@ -123,6 +123,7 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
             #import ipdb
             #ipdb.set_trace()
             solution_bak_data = zhishiku.zsk[9]['zsk'].find_by_sql(solution_output)
+            print(solution_bak_data)
             if solution_bak_data:
                 #solution_bak_data = str(solution_bak_data) 
                 solution_bak_data = str({solution_exec:solution_bak_data})
@@ -287,6 +288,11 @@ def get_answer_with_context(prompt,context_data,history_data,instruction):
     #answer = get_stream_llm(history_data)
     return answer
 
+def generate_answer_v1(solution_data,prompt,current_plan,history_data,zhishiku,init_question):
+    #import ipdb
+    #ipdb.set_trace()
+    solution_data = str(solution_data)
+    return solution_data
 def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku,init_question):
     """
     "{'获取数据': ['从企业数据库中获取数据:获取位于景德镇珠山的企业,>给出企业名称，企业类型,产业', '查询搜索引擎:烟台企业'], '生成答案': [\"'从上述>列表中，选出企业列表'\"], '评价答案': []}"
@@ -347,7 +353,8 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku,init
             #solution_prompt = instruction + '\n' + init_question
             #solution_prompt = solution_prompt.strip()
             #answer = get_answer_with_context(init_question,'\n'.join(solution_data),[],instruction)
-            answer = get_answer_with_context(init_question,str(solution_data),[],instruction)
+            #answer = get_answer_with_context(init_question,str(solution_data),[],instruction)
+            answer = get_answer_with_context(prompt,str(solution_data),history_data,instruction)
             break
         if '合并报告' in current or current=='生成pdf报告':
             #import ipdb
@@ -406,7 +413,8 @@ def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku,init
             #solution_prompt = instruction + '\n' + init_question
             #solution_prompt = solution_prompt.strip()
             #answer = get_answer_with_context(init_question,'\n'.join(solution_data),[],instruction)
-            answer = get_answer_with_context(init_question,str(solution_data),[],instruction)
+            #answer = get_answer_with_context(init_question,str(solution_data),[],instruction)
+            answer = get_answer_with_context(prompt,str(solution_data),history_data,instruction)
             #    #answer = get_answer_with_context('将内容进行精炼，形成一段文本',str(solution_data),[])
             #    #answer = get_answer_with_context(prompt,str(solution_data),[])
             #    answer = get_answer_with_context(prompt,'\n'.join(solution_data),[])
@@ -707,8 +715,8 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
     print(output)
     #output = get_agent(plan_history_data)
     solution_data = ''
-    import ipdb
-    ipdb.set_trace()
+    #import ipdb
+    #ipdb.set_trace()
     final_answer = ''
     is_normal = 1
     try:
@@ -723,7 +731,7 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
         init_question = output['init_question']
         #output['获取数据']=[['搜索引擎:{}'.format(prompt)]]
         solution_data = ''
-        print(output)
+        #print(output)
         #import ipdb
         #ipdb.set_trace()
         steps = ['获取数据','生成答案','评价答案']
@@ -828,7 +836,7 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
                     if len(chunk) > 2:
                         chunk = json.loads(chunk)
                         current_answer = chunk["response"]
-                        print(current_answer)
+                        #print(current_answer)
                         if not current_answer:
                             continue
                         current_count = current_answer.count('\n')

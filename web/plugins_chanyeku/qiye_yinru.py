@@ -61,8 +61,6 @@ def get_qiyeyinru(city_name='烟台',chanye=''):
     #    chanye_code=industrycode[chanye]
     #else:
     #    chanye_code = ''
-    import ipdb
-    ipdb.set_trace()
     chanye_code = get_chanyecode(chanye)
     if not chanye_code:
         return ''

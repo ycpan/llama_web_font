@@ -75,6 +75,6 @@ model.fit(X, gdp)
 next_gdp = len(years) + 1
 predicted_gdp = model.predict([[next_gdp]])
 
-import ipdb
-ipdb.set_trace()
+#import ipdb
+#ipdb.set_trace()
 print(f"预测明年的gdp为{predicted_gdp[0]:.2f}千万")
