@@ -728,7 +728,9 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
         if is_file:
             output = str({'type': 'step', 'content': {'获取数据': [[['搜索文件:{}'.format(prompt), f'查询搜索引擎:{prompt}']]], '生成答案': ['将答案与模型进行结合'], '评价答案': []},'init_question':prompt})
         output = eval(output)
-        init_question = output['init_question']
+        init_question = ''
+        if 'init_question' in output:
+            init_question = output['init_question']
         #output['获取数据']=[['搜索引擎:{}'.format(prompt)]]
         solution_data = ''
         #print(output)
@@ -776,8 +778,11 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
         context = solution_data
         #import ipdb
         #ipdb.set_trace()
-        context_json = eval(context[0])
-        context_json = list(context_json.values())[0]
+        if context:
+            context_json = eval(context[0])
+            context_json = list(context_json.values())[0]
+        else:
+            context_json = ''
         if "'source':"  not in str(context_json):
             if isinstance(answer,str):
                 final_answer = answer

@@ -148,6 +148,8 @@ def get_qiyeyinru(city_name='烟台',chanye=''):
     data = ""
     try:
         data = json.loads(response.text)
+        #import ipdb
+        #ipdb.set_trace()
     except:
         return ""
     company = [x['name'] for x in data['allCompany']['rows']]
@@ -159,7 +161,7 @@ if __name__ == '__main__':
     #data = get_qiyeyinru('')
     #data = get_qiyeyinru('郑州市',chanye='半导体与集成电路产业')
     #data = get_qiyeyinru('烟台',chanye='新能源')
-    data = get_qiyeyinru('北京',chanye='新能源')
+    data = get_qiyeyinru('遵义',chanye='元宇宙')
     #data = get_qiyeyinru('河南',chanye='新能源')
     #data =get_qiyeyinru('岳阳县','补益药')
     print(data)
