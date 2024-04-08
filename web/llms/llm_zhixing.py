@@ -284,6 +284,9 @@ def get_answer_with_context(prompt,context_data,history_data,instruction):
         history_data.append({"role": "user", "content": solution_prompt})
         solution_prompt = history_data 
 
+    print('input len is {}'.format(len(str(solution_prompt))))
+    #import ipdb
+    #ipdb.set_trace()
     answer = get_stream_llm(solution_prompt)
     #answer = get_stream_llm(history_data)
     return answer

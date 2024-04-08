@@ -525,8 +525,6 @@ def get_dev_stream_with_openapi(data):
         pass
     yield "data: %s\n\n" % "[DONE]"
 def get_prod_stream_with_openapi(data):
-    #import ipdb
-    #ipdb.set_trace()
     #history_data = [ {"role": "system", "content": "You are a helpful assistant."}]
     input_messages = get_generate_prompt(data)
     #input_messages = [{"role": "user", "content": data}]
@@ -538,7 +536,8 @@ def get_prod_stream_with_openapi(data):
     #openai.api_base = settings.llm.api_host
     #response = completion_with_backoff(model="internlm2-chat-7b", messages=history_data, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
     #response = completion_with_backoff(model="internlm2-chat-7b", messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
-    response = completion_with_backoff(model="internlm2-chat-7b", temperature=0.6,repetition_penalty=1.1,top_p=0.6,top_k=40,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    #response = completion_with_backoff(model="internlm2-chat-7b", temperature=0.6,repetition_penalty=1.1,top_p=0.6,top_k=40,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    response = completion_with_backoff(model="internlm2", temperature=0.6,repetition_penalty=1.1,top_p=0.6,top_k=40,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
     resTemp=""
     try:
         for chunk in response:
