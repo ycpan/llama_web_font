@@ -126,6 +126,7 @@ def exec_step(current_plan,zhishiku,chanyeku,current_bak_data=''):
                 old_offset_str = 'offset ' + offset_int_str
                 new_offset_str = 'offset ' + str((int(offset_int_str) - 1) * int(limit_int_str))
                 solution_output = solution_output.replace(old_offset_str,new_offset_str)
+            solution_output = solution_output.replace('order by `产业评分`', 'order by `综合评分`')
             print(solution_exec + ':' + solution_output)
             #solution_bak_data = zhishiku.zsk[1]['zsk'].find_by_sql(solution_output)
             #import ipdb
