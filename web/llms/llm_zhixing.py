@@ -300,12 +300,12 @@ def get_answer_with_context(prompt,context_data,history_data,instruction):
     #answer = get_stream_llm(history_data)
     return answer
 
-def generate_answer_v1(solution_data,prompt,current_plan,history_data,zhishiku,init_question):
+def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku,init_question):
     #import ipdb
     #ipdb.set_trace()
     solution_data = str(solution_data)
     return solution_data
-def generate_answer(solution_data,prompt,current_plan,history_data,zhishiku,init_question):
+def generate_answer_v1(solution_data,prompt,current_plan,history_data,zhishiku,init_question):
     """
     "{'获取数据': ['从企业数据库中获取数据:获取位于景德镇珠山的企业,>给出企业名称，企业类型,产业', '查询搜索引擎:烟台企业'], '生成答案': [\"'从上述>列表中，选出企业列表'\"], '评价答案': []}"
     {'获取数据': [['从企业数据库中获取数据:北京专精特新企业的企业名称，产业，企业类型'], ['查询搜索引擎:北京专精特新企业']], '生成答案': ['获取答案的前缀', '将答案和前缀进行组合输出'], '评价答案': []}
