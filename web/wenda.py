@@ -499,7 +499,8 @@ async def websocket_endpoint(websocket: WebSocket):
                         await asyncio.sleep(0)
                         # end = time.time()
                         # cost+=end-start
-                await websocket.send_text(text + '\n<br />\nAI生成内容仅供参考')
+
+                await websocket.send_text(text + '\n<br /><br />\n<p style="color: red;">AI生成内容仅供参考</p>')
                 await asyncio.sleep(0)
             except Exception as e:
                 error = str(e)
