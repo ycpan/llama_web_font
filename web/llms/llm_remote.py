@@ -146,8 +146,8 @@ def get_prod_agent_output_fast(input_str):
     """
     这个接口使用openai的协议，但是不支持stream
     """
-    api_endpoint = "http://10.0.0.20:23336/v1/chat/completions"
-    #api_endpoint = "http://10.0.0.12:23336/v1/chat/completions"
+    #api_endpoint = "http://10.0.0.20:23336/v1/chat/completions"
+    api_endpoint = "http://10.0.0.12:23336/v1/chat/completions"
     input_messages = get_generate_prompt(input_str)
     #if isinstance(input_str,str):
     #    history_data = [ {"role": "system", "content": "You are a helpful assistant. 你是一个乐于助人的助手。\n"}]

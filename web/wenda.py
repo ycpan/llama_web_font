@@ -490,13 +490,17 @@ async def websocket_endpoint(websocket: WebSocket):
                 print("\033[1;32m"+IP+":\033[1;31m"+prompt+"\033[1;37m")
             try:
                 #for response in LLM.chat_one(prompt, history_formatted, max_length, top_p, temperature, data):
+                text = ''
                 for response in LLM.chat_one(prompt, history_formatted, max_length, top_p, temperature, data, zhishiku,chanyeku=chanyeku):
                     if (response):
                         # start = time.time()
+                        text = response
                         await websocket.send_text(response)
                         await asyncio.sleep(0)
                         # end = time.time()
                         # cost+=end-start
+                await websocket.send_text(text + '\n<br />\nAI生成内容仅供参考')
+                await asyncio.sleep(0)
             except Exception as e:
                 error = str(e)
                 await websocket.send_text("错误"+ error)
