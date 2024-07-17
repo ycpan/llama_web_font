@@ -2,6 +2,7 @@ import os
 import time
 import json
 import copy
+import random
 import re
 import hashlib
 import numpy as np
@@ -670,93 +671,208 @@ def get_plan_history(history_data):
         if da['role'] == 'system' or da['role'] == 'user':
             res.append(da)
     return res
+def check_class(history_data,prompt,zhishiku):
+    
+    instruction = """请按照下面的类别，选出一个最可能的类别，如果以下类别都不合适，请回复"其它"：
+    离婚纠纷
+    赡养纠纷
+    探望权纠纷
+    同居关系纠纷
+    婚约财产纠纷
+    家庭暴力纠纷
+    家庭琐事纠纷
+    法定继承纠纷
+    同居关系析产纠纷
+    同居关系子女抚养纠纷
+    """
+    #hits = zhishiku.zsk[7]['zsk'].find(prompt)
+    #import ipdb
+    #ipdb.set_trace()
+    #li = []
+    #for hit in hits:
+    #    question = hit['question']
+    #    answer = hit['answer']
+    #    li.append(f'问题:{question}')
+    #    li.append(f'回答:{answer}')
+    new_prompt = instruction + prompt
+    #new_prompt = instruction + '\n    下面是一些例子：\n    ' + '\n    '.join(li) + '\n    下面是问题：' + '\n    问题:' + prompt
+    ##import ipdb
+    ##ipdb.set_trace()
+    history_data.append({'role':'user','content':new_prompt})
+    if len(prompt) < 30:
+        return '其它'
+    c_class = get_agent(history_data)
+    if c_class == '其它':
+        return c_class
+    hits = zhishiku.zsk[7]['zsk'].find(prompt)
+    res = {}
+    max_count = 0
+    c_class = '其它'
+    for hit in hits:
+        score = hit['score']
+        answer = hit['answer']
+        if score > 0.95:
+            c_class = answer
+            break
+        if answer not in res:
+            res[answer]=0
+        res[answer] += 1
+        if res[answer] > max_count:
+            c_class = answer
+            max_count = res[answer]
+
+    return c_class
+def get_fatiao(c_class,zhishiku):
+    sql = f'select `法规名称`,`法条名称` from Algrithm.4_法条推送_c类问答场景需要 where `纠纷类型` = \'{c_class}\';'
+    hits = zhishiku.zsk[1]['zsk'].find_by_sql(sql)
+    return hits
+def get_anli(c_class,zhishiku):
+    sql = f'select `案例全文` from Algrithm.5_案例推送_c类问答场景需要 where `纠纷类型` = \'{c_class}\';'
+    hits = zhishiku.zsk[1]['zsk'].find_by_sql(sql)
+    return hits
+def get_jiegou(c_class,zhishiku):
+    sql = f'select `化解方案`,`化解建议`,`化解预期结果` from Algrithm.1_答案构造的标准化解内容_a类问答场景需要 where `纠纷类型` = \'{c_class}\';'
+    hits = zhishiku.zsk[1]['zsk'].find_by_sql(sql)
+    return hits
+def recormend_simility_question(prompt):
+    from zhipuai import ZhipuAI
+    client = ZhipuAI(api_key="56e5dd2c23e1549751789deca7905ee5.TXYFSFrGpk9hG7vv") # 请填写您自己的APIKey
+    #system = '你的名字叫友谅科技智能助手，由北京友谅科技有限公司开发，请用专业的知识回答下面的问题。'
+    #new_history_data = [{'role':'system','content':system}]
+    history_data = []
+    new_prompt = '请根据下面的问题引申出可能要追问的的问题:\n\n' + prompt
+    history_data.append({"role": "user", "content": new_prompt})
+    #new_history_data.extend(history_data)
+    response = client.chat.completions.create(
+    #response = client.chat.asyncCompletions.create(
+    model="GLM-4-Flash",  # 填写需要调用的模型名称
+    #messages=new_history_data,
+    messages=history_data,
+    stream=False,
+    )
+    resp = response.choices[0].message.content
+    #resp = response
+    return resp
 #def chat_one(prompt, history_formatted, max_length, top_p, temperature, data):
 def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_receive_data,zhishiku=False,chanyeku=False):
-    history_data = [ {"role": "system", "content": "You are a helpful assistant. 你是一个乐于助人的助手。\n"}]
+    #recormend_question = recormend_simility_question(prompt)
+    recormend_question = ''
+    #history_data = [ {"role": "system", "content": "You are a helpful assistant. 你是一个乐于助人的助手。\n"}]
+    #history_data = [ {"role": "system", "content": "你是一个法律专家，用你擅长的法律知识回答相关法律问题。"}]
+    #history_data = [ {"role": "system", "content": "你的名字叫瀚语科技智能助手，由北京瀚语科技有限公司开发，帮助用户解决法律方面的问题。"}]
+    history_data = []
+    #import ipdb
+    #ipdb.set_trace()
     # web 界面history正常，G端history最新的问题在最后，需要调整顺序，小程序需要修改格式。这些都放在wenda程序里修改吧。
     #history_formatted = history_formatted[::-1]
     #history_formatted = history_formatted[-5:]
-    #if history_formatted is not None:
-    #    for i, old_chat in enumerate(history_formatted):
-    #        if 'role' in old_chat:
-    #            if old_chat['role'] == "user":
-    #                history_data.append(
-    #                    {"role": "user", "content": old_chat['content']})
-    #            elif old_chat['role'] == "AI" or old_chat['role'] == 'assistant':
-    #                if i > len(history_formatted) - 4:
-    #                    history_data.append(
-    #                        {"role": "assistant", "content": old_chat['content']},)
-    #        else:
-    #            history_data.append({"role":"user","content":old_chat["question"]})
-    #            history_data.append({"role":"assistant","content":old_chat["answer"]})
-    #history_data.append({"role": "user", "content": prompt})
+    if history_formatted is not None:
+        for i, old_chat in enumerate(history_formatted):
+            if 'role' in old_chat:
+                if old_chat['role'] == "user":
+                    history_data.append(
+                        {"role": "user", "content": old_chat['content']})
+                elif old_chat['role'] == "AI" or old_chat['role'] == 'assistant':
+                    #if i > len(history_formatted) - 4:
+                    if len(old_chat['content'].split('\n\n\n\n\n\n')) > 1:
+                        history_data.append(
+                            {"role": "assistant", "content": old_chat['content'].split('\n\n\n\n\n\n')[1]})
+            #else:
+            #    history_data.append({"role":"user","content":old_chat["question"]})
+            #    history_data.append({"role":"assistant","content":old_chat["answer"]})
+
     #import ipdb
     #ipdb.set_trace()
-    history_data = history_formatted
+    c_class = check_class(history_data,prompt,zhishiku)
+    history_data = history_data[:-1]
+    #import ipdb
+    #ipdb.set_trace()
+    fatiao = get_fatiao(c_class,zhishiku)
+    anli= get_anli(c_class,zhishiku)
+    instruction = ""
+    if c_class != '其它':
+        instruction = "请分别从化解方案，化解建议，化解预期结果三个方面针对性的回答问题："
+        #instruction = "请结合实际案例，结合案例中的具体人物，分别从化解方案，化解建议，化解预期结果三个方面针对性的回答问题："
+        jianyi_jiegou = get_jiegou(c_class,zhishiku)
+        fangan = jianyi_jiegou[0]['化解方案']
+        jianyi = jianyi_jiegou[0]['化解建议']
+        jieguo = jianyi_jiegou[0]['化解预期结果']
+        #instruction = instruction + '\n    化解方案：' + f'\n    {fangan}' + '\n    化解建议：' + f'\n    {jianyi}' + '\n    化解预期结果：' + f'\n    {jieguo}' + '\n'
+        #instruction =  '\n    化解方案：' + f'\n    {fangan}' + '\n    化解建议：' + f'\n    {jianyi}' + '\n    化解预期结果：' + f'\n    {jieguo}' + '\n' + instruction
+    #import ipdb
+    #ipdb.set_trace()
+    prompt = instruction + prompt
+    #import ipdb
+    #ipdb.set_trace()
+    history_data.append({"role": "user", "content": prompt})
+    #import ipdb
+    #ipdb.set_trace()
+    #history_data = history_formatted
 
     #import ipdb
     #ipdb.set_trace()
     #history_data = transform_openai2llama2(history_data)
-    prompt = prompt.strip()
+    #prompt = prompt.strip()
+    prompt = history_data
     is_file = False
     if '学习已经完成' in str(history_formatted):
         is_file = True
-    plan_question = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，针对以下问题，生成相应的解决问题的计划与步骤:\n' + prompt
+    #plan_question = '你的名字叫小星，一个产业算法智能助手，由合享智星算法团队于2022年8月开发，可以解决产业洞察，诊断，企业推荐等相关问题。现在，你作为产业问题解决专家，针对以下问题，生成相应的解决问题的计划与步骤:\n' + prompt
     #plan_question = plan_question.strip()
     #plan_history_data = copy.deepcopy(history_data)
-    plan_history_data = get_plan_history(history_data)
-    #import ipdb
-    #ipdb.set_trace()
-    plan_history_data.append({"role":"user","content":plan_question})
-    #plan_history_data = plan_history_data[::-1]
+    #plan_history_data = get_plan_history(history_data)
+    ##import ipdb
+    ##ipdb.set_trace()
+    #plan_history_data.append({"role":"user","content":plan_question})
+    ##plan_history_data = plan_history_data[::-1]
     print(history_data)
-    content = ''.join([x['content'] for x in plan_history_data])
+    #content = ''.join([x['content'] for x in plan_history_data])
 
-    if len(content) > 7000:
-        #import ipdb
-        #ipdb.set_trace()
-        history_data = []
-        history_data.append({"role": "user", "content": prompt},)
-        if len(prompt) > 8000:
-            raise ValueError('最长只能支持8000个字符，不要超标')
-            #history_data.extend(plan_history_data[-20:])
+    #if len(content) > 7000:
+    #    #import ipdb
+    #    #ipdb.set_trace()
+    #    history_data = []
+    #    history_data.append({"role": "user", "content": prompt},)
+    #    if len(prompt) > 8000:
+    #        raise ValueError('最长只能支持8000个字符，不要超标')
+    #        #history_data.extend(plan_history_data[-20:])
     #output = get_agent(plan_question)
     #import ipdb
     #ipdb.set_trace()
-    output = get_agent(plan_history_data)
-    print(output)
     #output = get_agent(plan_history_data)
-    solution_data = ''
-    #import ipdb
-    #ipdb.set_trace()
-    final_answer = ''
-    is_normal = 1
+    #print(output)
+    ##output = get_agent(plan_history_data)
+    #solution_data = ''
+    ##import ipdb
+    ##ipdb.set_trace()
+    #final_answer = ''
+    #is_normal = 1
     try:
         """
 "{'获取数据': ['从企业数据库中获取数据:获取位于景德镇珠山的企业,>给出企业名称，企业类型,产业', '查询搜索引擎:烟台企业'], '生成答案': [\"'从上述>列表中，选出企业列表'\"], '评价答案': []}"
     {'获取数据': [['从企业数据库中获取数据:北京专精特新企业的企业名称，产业，企业类型'], ['查询搜索引擎:北京专精特新企业']], '生成答案': ['获取答案的前缀', '将答案和前缀进行组合输出'], '评价答案': []}
         """
         #xy = 2/0 
-        if is_file:
-            output = str({'type': 'step', 'content': {'获取数据': [[['搜索文件:{}'.format(prompt), f'查询搜索引擎:{prompt}']]], '生成答案': ['将答案与模型进行结合'], '评价答案': []},'init_question':prompt})
-        output = eval(output)
-        init_question = ''
-        if 'init_question' in output:
-            init_question = output['init_question']
-        #output['获取数据']=[['搜索引擎:{}'.format(prompt)]]
+        #if is_file:
+        #    output = str({'type': 'step', 'content': {'获取数据': [[['搜索文件:{}'.format(prompt), f'查询搜索引擎:{prompt}']]], '生成答案': ['将答案与模型进行结合'], '评价答案': []},'init_question':prompt})
+        #output = eval(output)
+        #init_question = ''
+        #if 'init_question' in output:
+        #    init_question = output['init_question']
+        ##output['获取数据']=[['搜索引擎:{}'.format(prompt)]]
         solution_data = ''
-        #print(output)
-        #import ipdb
-        #ipdb.set_trace()
-        steps = ['获取数据','生成答案','评价答案']
-        solution_data = ''
-        if "type" not in output:
-            output = {'type':'step','content':output}
-        if output["type"] == "llm":
-            """
-            对于一些娱乐问题或者与产业不是太相关问题，直接让llm来作答
-            """
-            response = get_stream_llm(prompt)
+        ##print(output)
+        ##import ipdb
+        ##ipdb.set_trace()
+        #steps = ['获取数据','生成答案','评价答案']
+        #solution_data = ''
+        #if "type" not in output:
+        #    output = {'type':'step','content':output}
+        #if output["type"] == "llm":
+        #    """
+        #    对于一些娱乐问题或者与产业不是太相关问题，直接让llm来作答
+        #    """
+        response = get_stream_llm(prompt)
             #resTemp=""
             #for chunk in response:
             #    if '[DONE]' in chunk:
@@ -764,32 +880,30 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
             #    if len(chunk) > 2:
             #        chunk = json.loads(chunk)
             #        yield chunk["response"].replace('\n','<br />\n')
-            answer = response
-        if output["type"] == "answer":
-            """
-            比如问功能，问你是谁的问题，agent直接出答案
-            """
-            response = output["content"]
-            answer = response
-            #curr = ''
-            #for chunk in list(response):
-            #    curr += chunk
-            #    time.sleep(0.05)
-            #    yield curr.replace('\n','<br />\n')
-        if output["type"] == "plan":
-        #    output_type = output["type"]
-        #    output = output['content']
-        #if output["type"] == "step" or output["type"]== "tools" or output["type"]== "plan":
-            
-            answer = decomposer_plan(output,prompt,history_data,zhishiku,chanyeku,init_question)
-        if output["type"] == "step" or output["type"]== "tools":
-            answer,solution_data = execution(output,prompt,history_data,zhishiku,chanyeku,init_question)
+        answer = response
+        #if output["type"] == "answer":
+        #    """
+        #    比如问功能，问你是谁的问题，agent直接出答案
+        #    """
+        #    response = output["content"]
+        #    answer = response
+        #    #curr = ''
+        #    #for chunk in list(response):
+        #    #    curr += chunk
+        #    #    time.sleep(0.05)
+        #    #    yield curr.replace('\n','<br />\n')
+        #if output["type"] == "plan":
+        ##    output_type = output["type"]
+        ##    output = output['content']
+        ##if output["type"] == "step" or output["type"]== "tools" or output["type"]== "plan":
+        #    
+        #    answer = decomposer_plan(output,prompt,history_data,zhishiku,chanyeku,init_question)
+        #if output["type"] == "step" or output["type"]== "tools":
+        #    answer,solution_data = execution(output,prompt,history_data,zhishiku,chanyeku,init_question)
         if answer is None:
             raise ValueError('answer为None，抛出异常')
         # 
         context = solution_data
-        #import ipdb
-        #ipdb.set_trace()
         if context:
             context_json = eval(context[0])
             context_json = list(context_json.values())[0]
@@ -802,16 +916,29 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
                 for token in answer.split('\n'):
                     current_content += token + '\n'
                     time.sleep(0.05)
-                    #yield current_content
-                    yield current_content.replace('\n','<br />\n')
+                    yield current_content
+                    #yield current_content.replace('\n','<br />\n')
             else:
+                prefixs = ['这个是关于**婚姻纠纷**的案子。','此处呈现的是一则涉及**婚姻纠纷**的实例。','这是一起涉及**婚姻纠纷**法律争议的例子。','这是一起涉及**婚姻纠纷**的案件。','此案涉及**婚姻纠纷**。','该案例围绕**婚姻纠纷**展开。','本起案件是关乎于**婚姻纠纷**的问题。','这起案件涉及了**婚姻纠纷**的争议。','该案件处理的是**婚姻纠纷**问题。','该案例探讨的是**婚姻纠纷**的争议。','这起案件聚焦于**婚姻纠纷**的争议。']
+                prefix = random.sample(prefixs,1)[0]
+                prefix = prefix.replace('婚姻纠纷',c_class)
+                if c_class == '其它':
+                    prefix = ''
+                #prefix = ''
+                
                 for chunk in answer:
                     if '[DONE]' in chunk:
                         continue
+                        #yield final_answer + '\n\n' + '[fatiao](http:123)'
                     if len(chunk) > 2:
                         chunk = json.loads(chunk)
                         final_answer = chunk["response"]
-                        yield chunk["response"].replace('\n','<br />\n')
+                        #yield chunk["response"].replace('\n','<br />\n')
+                        yield prefix + '\n\n\n\n\n\n' + chunk["response"]
+                        #yield chunk["response"]
+                if c_class and c_class != '其它':
+                    #yield prefix + '\n\n\n\n\n\n' + final_answer + '\n\n\n\n\n\n' + f'{c_class}' + '\n' + f'[相关法条](http://114.242.71.36:17870/fatiao?keyword={c_class})' + '\n' + f'[相关案例](http://114.242.71.36:17870/anli?keyword={c_class})' + '\n\n\n\n\n\n问题推荐:\n\n' + recormend_question
+                    yield prefix + '\n\n\n\n\n\n' + final_answer + '\n\n\n\n\n\n' +  f'[相关法条](http://114.242.71.36:17870/fatiao?keyword={c_class})' + '\n' + f'[相关案例](http://114.242.71.36:17870/anli?keyword={c_class})'
         else:
             #context_json = eval(context_json)
             content_li,source_li = [],[]
@@ -839,8 +966,8 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
                 for token in answer.split('\n'):
                     current_content += token + '\n'
                     time.sleep(0.05)
-                    #yield current_content
-                    yield current_content.replace('\n','<br />\n')
+                    yield current_content
+                    #yield current_content.replace('\n','<br />\n')
             else:
                 for chunk in answer:
                     #print(chunk)
@@ -918,7 +1045,8 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
                         #yield '\n'.join(new_answer_li).replace('\n','<br />\n')
                         #yield new_answer.replace('\n','<br />\n')
                         #yield chunk["response"].replace('\n','<br />\n')
-                        yield final_answer.replace('\n','<br />\n')
+                        #yield final_answer.replace('\n','<br />\n')
+                        yield final_answer
     except Exception as e:
         is_normal = 0
         print(e)
@@ -950,12 +1078,14 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
                 #ipdb.set_trace()
                 chunk = json.loads(chunk)
                 final_answer = chunk["response"]
-                yield chunk["response"].replace('\n','<br />\n')
+                #yield chunk["response"].replace('\n','<br />\n')
+                yield chunk["response"]
         #except:
         #    import ipdb
         #    ipdb.set_trace()
         #    print(1)
-    zhishiku.zsk[1]['zsk'].save(prompt,str(output),solution_data,final_answer,is_normal)
+    #zhishiku.zsk[1]['zsk'].save(prompt,str(output),solution_data,final_answer,is_normal)
+    #zhishiku.zsk[1]['zsk'].save(prompt,solution_data,final_answer,is_normal)
 
 
 chatCompletion = None

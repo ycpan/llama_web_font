@@ -105,11 +105,11 @@ class batchSql:
                     docid = item['docid']
                     result.append((','.join(tags),docid))
 
-host = '10.0.0.11'
+host = 'localhost'
 port = 3306
 user = 'root'
-passwd = 'Incostar@2021'
-db_name = 'algorithm_app'
+passwd = 'mysql@033471'
+db_name = 'Algrithm_app'
 #db_name = 'algorithm'
 my_sql = batchSql(host,port,user,passwd,db_name)
 batch_sql =  "INSERT INTO llm_web(code,question,query_web,content,answer,evaluation) VALUES(%s,%s,%s,%s,%s,%s)"

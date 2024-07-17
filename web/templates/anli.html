@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>案例推荐</title>
+</head>
+<body>
+    <h1>相关案例</h1>
+    <!--form action="/" method="get">
+        <input type="text" name="keyword" placeholder="Enter keyword" value="{{ keyword }}">
+        <input type="submit" value="Search">
+    </form --!>
+
+    {% set counter = 0 %}
+    {% if results %}
+        <!--h2>与"{{ keyword }}"有关的案例如下:</h2-->
+        <ul>
+            {% for item in results %}
+	        {% set counter = counter + 1 %}
+		<li><h3>第<strong> {{ loop.index }} </strong>个案例</h3></li>
+		<pre>{{ item.案例全文|replace('；', '；\n')|replace('：', '：\n') }}</pre>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>

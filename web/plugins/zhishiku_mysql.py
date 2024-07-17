@@ -111,11 +111,12 @@ class batchSql:
 #passwd = 'Incostar@2021'
 #db_name = 'algorithm_app'
 #db_name = 'algorithm'
-host = '10.0.0.14'
+host = 'localhost'
 port = 3306
 user = 'root'
-passwd = 'Incostar@2021'
-db_name = 'algorithm_app'
+passwd = 'mysql@033471'
+db_name = 'Algrithm_app'
+#db_name = 'Algrithm'
 my_sql = batchSql(host,port,user,passwd,db_name)
 #batch_sql =  "INSERT INTO llm_web(code,question,query_web,content,answer,evaluation) VALUES(%s,%s,%s,%s,%s,%s)"
 #
@@ -135,6 +136,7 @@ my_sql.set_batch_sql(batch_sql)
 def find(s,step=0):
     code = get_md5(s)
     query_sql = 'select content from llm_web where code=\'{}\' limit 1;'.format(code)
+    #query_sql = s
     data = my_sql.query_data(query_sql)
     #print(data)
     #return data

@@ -21,6 +21,10 @@ from plugins.common import allowCROS
 from plugins.common import settings
 from plugins.common import app
 import logging
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
+import aiomysql
+import re
 logging.captureWarnings(True)
 logger = None
 try:
@@ -448,7 +452,8 @@ async def websocket_endpoint(websocket: WebSocket):
             """
             #import ipdb
             #ipdb.set_trace()
-            data['history'] = build_web_history(data['history'])
+            #data['history'] = build_web_history(data['history'])
+            pass
             
 
         if 'history' not in data:
@@ -500,7 +505,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         # end = time.time()
                         # cost+=end-start
 
-                await websocket.send_text(text + '\n<br /><br />\n<p style="color: red;">AI生成内容仅供参考</p>')
+                #await websocket.send_text(text + '\n<br /><br />\n<p style="color: red;">AI生成内容仅供参考</p>')
                 await asyncio.sleep(0)
             except Exception as e:
                 error = str(e)
@@ -534,7 +539,106 @@ async def download_file(file_name):
 @app.get("/")
 async def index(request: Request):
     return RedirectResponse(url="/index.html")
-
+# MySQL数据库配置
+DB_CONFIG = {
+    'host': 'localhost',
+    'port': 3306,
+    'user': 'root',
+    'password': 'mysql@033471',
+    'db': 'Algrithm',
+    #'minsize': 1,
+    #'maxsize': 10
+}
+# 初始化Jinja2模板引擎
+templates = Jinja2Templates(directory="templates")
+@app.get('/fatiao',response_class=HTMLResponse)
+async def get_fatiao(request: Request, keyword: str = ""):
+    # http://114.242.71.36:17870/fatiao?keyword=%E5%A9%9A
+    #noCache()
+    #keyword = request.get('keyword', '')
+    results = ['nihao ya','这个是进行测试用的']
+    results = []
+    if keyword:
+        conn = await aiomysql.connect(**DB_CONFIG)
+        cur = await conn.cursor(aiomysql.DictCursor)
+        await cur.execute("SELECT `法规名称`,`法条名称`,`法条内容` FROM Algrithm.4_法条推送_c类问答场景需要 WHERE `纠纷类型` LIKE %s", ('%' + keyword + '%',))
+        results = await cur.fetchall()
+        await cur.close()
+        conn.close()
+    #import ipdb
+    #ipdb.set_trace()
+    #return render_template('fatiao.html', keyword=keyword, results=results)
+    return templates.TemplateResponse("fatiao.html", {"request": request, "keyword": keyword, "results": results})
+    #return static_file('llm_'+settings.llm_type+".js", root="llms")
+@app.get('/anli',response_class=HTMLResponse)
+async def get_fatiao(request: Request, keyword: str = ""):
+    # http://114.242.71.36:17870/fatiao?keyword=%E5%A9%9A
+    #noCache()
+    results = []
+    if keyword:
+        conn = await aiomysql.connect(**DB_CONFIG)
+        cur = await conn.cursor(aiomysql.DictCursor)
+        await cur.execute("SELECT `案例全文` FROM Algrithm.5_案例推送_c类问答场景需要 WHERE `纠纷类型` LIKE %s", ('%' + keyword + '%',))
+        results = await cur.fetchall()
+        await cur.close()
+        conn.close()
+    #import ipdb
+    #ipdb.set_trace()
+    return templates.TemplateResponse("anli.html", {"request": request, "keyword": keyword, "results": results})
+def recormend_simility_question(prompt):
+    from zhipuai import ZhipuAI
+    client = ZhipuAI(api_key="56e5dd2c23e1549751789deca7905ee5.TXYFSFrGpk9hG7vv") # 请填写您自己的APIKey
+    #system = '你的名字叫友谅科技智能助手，由北京友谅科技有限公司开发，请用专业的知识回答下面的问题。'
+    #new_history_data = [{'role':'system','content':system}]
+    history_data = []
+    new_prompt = '请根据下面的问题引申出可能要追问的的问题,并返回python list格式，list元素不超过10个:\n\n' + prompt
+    history_data.append({"role": "user", "content": new_prompt})
+    #new_history_data.extend(history_data)
+    response = client.chat.completions.create(
+    #response = client.chat.asyncCompletions.create(
+    model="GLM-4-Flash",  # 填写需要调用的模型名称
+    #messages=new_history_data,
+    messages=history_data,
+    stream=False,
+    )
+    
+    #import ipdb
+    #ipdb.set_trace()
+    resp = response.choices[0].message.content
+    #resp = response
+    return resp
+#def chat_one(prompt, history_formatted, max_length, top_p, temperature, data):
+@app.get('/api/similar-questions')
+async def get_fatiao(request: Request, question: str = ""):
+    # http://114.242.71.36:17870/fatiao?question=%E5%A9%9A
+    #noCache()
+    results = []
+    if question:
+        #conn = await aiomysql.connect(**DB_CONFIG)
+        #cur = await conn.cursor(aiomysql.DictCursor)
+        #await cur.execute("SELECT `案例全文` FROM Algrithm.5_案例推送_c类问答场景需要 WHERE `纠纷类型` LIKE %s", ('%' + question + '%',))
+        #results = await cur.fetchall()
+        #await cur.close()
+        #conn.close()
+        results = recormend_simility_question(question)
+        #import ipdb
+        #ipdb.set_trace()
+        try:
+            clean_results = results
+            if '```' in clean_results:
+                clean_results = clean_results.replace('```','').strip('python\n')
+                clean_results = re.sub('\d*\. ','',clean_results)
+                results = eval(clean_results)
+            else:
+                clean_results = re.split('\d*\. ',clean_results)
+                results = [x.strip() for x in clean_results if x.strip()]
+            results = results[0:10]
+        except:
+            results =[]
+    #import ipdb
+    #ipdb.set_trace()
+    #return templates.TemplateResponse("anli.html", {"request": request, "question": question, "results": results})
+    return results
 app.mount(path="/chat/", app=WSGIMiddleware(bottle.app[0]))
 app.mount(path="/api/", app=WSGIMiddleware(bottle.app[0]))
 app.mount("/txt/", StaticFiles(directory="txt"), name="txt")

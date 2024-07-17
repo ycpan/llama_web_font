@@ -5,7 +5,7 @@ logging_path: "sqlite:///../record.db?check_same_thread=False"
 #port: 17860
 #port: 17865
 #port: 17862
-port: 17866
+port: 17870
 #webui 默认启动端口号"
 library:
    #strategy: "calc:2 rtst:2 agents:0"
@@ -68,8 +68,8 @@ librarys:
       device: cuda
       #embedding运行设备
    qdrant:
-      #count: 3
-      count: 100
+      count: 3
+      #count: 100
       #最大抽取数量
       size: 20
       #分块大小
@@ -79,10 +79,10 @@ librarys:
       #知识库文本路径
       #model_path: "model/m3e-base"
       #model_path: "/home/panyongcan/Project/model/m3e-base"
-      model_path: "/devdata/home/user/panyongcan/Project/embedding/m3e-base"
+      model_path: "/home/guest/project/models/m3e-base"
       #向量模型存储路径
       #qdrant_host: "http://localhost:6333"
-      qdrant_host: "http://10.0.0.14:6333"
+      qdrant_host: "http://localhost:6333"
       #qdrant服务地址
       #qdrant_path: "memory/q"
       #qdrant本地目录   qdrant_path   qdrant_host  同时只能存在一个
@@ -92,10 +92,10 @@ librarys:
       batch_size: 32
       #向量模型批处理大小
       #collection: qa_collection
-      collection: test_query
+      collection: wangge_class
       #qdrant集合名称
       #similarity_threshold: 0.8
-      similarity_threshold: 0.70
+      similarity_threshold: 0.75
       #相似度阈值
    kg:
       count: 5
@@ -216,7 +216,8 @@ llm_models:
       #api_host: "https://api.gptjk.top/v1" #官方地址
       #api_host: "https://openai.api2d.net/v1" #官方地址
       #api_host: "http://10.0.0.20:19327/v1" #rwkv runner
-      api_host: "http://10.0.0.12:8000/v1" #rwkv runner
+      #api_host: "http://10.0.0.12:8000/v1" #rwkv runner
+      api_host: "http://127.0.0.1:8000/v1" #rwkv runner
       # https://api2d.com/wiki/doc
       api_key: "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"
 

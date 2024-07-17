@@ -64,11 +64,12 @@ def find(s, step=0):
             #docs.append(get_doc(sample, step))
             docs.append(get_my_doc(sample))
         print('docs length is {}'.format(len(docs)))
-        content = '\n'.join(docs)
-        #content = get_content(docs)
-        related_res = get_related_content(s,content)
-        return related_res
+        #content = '\n'.join(docs)
+        ##content = get_content(docs)
+        #related_res = get_related_content(s,content)
+        #return related_res
         #return content
+        return docs
     except Exception as e:
         print(e)
         #return []
@@ -145,7 +146,9 @@ def get_related_content(query,content):
     return res[0:3700]
     #return res[0:4500]
 def get_my_doc(doc):
-    final_content = doc.payload["content"]
+    #final_content = doc.payload["content"]
+    final_content = doc.payload
+    final_content['score'] = doc.score
     return final_content
     
 def get_doc(doc, step):

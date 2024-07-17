@@ -14,7 +14,7 @@ import numpy as np
 from tqdm import tqdm
 namespace = uuid.UUID('{00010203-0405-0607-0809-0a0b0c0d0e0f}')
 #model_name = "/home/user/panyongcan/project/big_model/m3e-base"
-model_name = "/home/guest/project/models/m3e-base"
+model_name = "/devdata/home/user/panyongcan/Project/big_models/m3e-base"
 model_kwargs = {'device': 'cuda'}
 encode_kwargs = {'normalize_embeddings': False}
 hf_embeddings = HuggingFaceEmbeddings(
@@ -23,11 +23,11 @@ hf_embeddings = HuggingFaceEmbeddings(
     encode_kwargs=encode_kwargs
 )
 class zhuanliKey:
-    def __init__(self,host='127.0.0.1',collect_name="wangge_class"):
+    def __init__(self,host='10.0.0.14',collect_name="patent_key_word1"):
         self.collect_name = collect_name
         self.host = host
-        #import ipdb
-        #ipdb.set_trace()
+        import ipdb
+        ipdb.set_trace()
         self.client = QdrantClient(self.host, port=6333)
         #client = QdrantClient(host="localhost", grpc_port=6334, prefer_grpc=True)
         collect_li = self.client.get_collections()
@@ -38,81 +38,11 @@ class zhuanliKey:
                 collection_name=self.collect_name,
                 vectors_config=VectorParams(size=768, distance=Distance.COSINE),
             )
-            #import ipdb
-            #ipdb.set_trace()
             self.client.create_payload_index(collection_name=self.collect_name, 
-                                        field_name="question", 
+                                        field_name="content", 
                                         field_schema="keyword")
             
-    def build_question_and_answer(self,csv_path,vec_path=None):
-        #import ipdb
-        #ipdb.set_trace()
-        df_reader = ''
-        if 'xlsx' in csv_path[-4:]:
-            df_reader = pd.read_excel(csv_path)
-            df_reader.to_csv('tmp.csv')
-            df_reader = pd.read_csv('tmp.csv',chunksize=20)
-        else:
-            df_reader = pd.read_csv(csv_path,chunksize=20)
-        ps = []
-        bucket = []
-        #for sub_df in tqdm(df_reader):
-        cnt_process = 0
-        for sub_df in df_reader:
-            cnt_process += 1
-            print(cnt_process)
-            #text = text.page_content.strip()
-            #questions = sub_df['问题'].tolist()
-            #answers = sub_df['答案'].tolist()
-            questions = sub_df['纠纷实例内容'].tolist()
-            answers = sub_df['纠纷类型'].tolist()
-
-            #if len(questions) < 50:
-            #    continue
-            #bucket.append(text)
-            #if len(bucket) >= 50:
-            #import ipdb
-            #ipdb.set_trace()
-            vecs = hf_embeddings.embed_documents(questions)
-            assert len(vecs) == len(answers)
-            for vec,question,answer in zip(vecs,questions,answers):
-                #key = str(row['pn'].strip())
-                key = str(question) + str(answer)
-                ps.append(
-                    PointStruct(
-                        #id=idx,
-                        id=str(uuid.uuid3(namespace, key)),
-                        vector=vec,
-                        #payload={"content": content, "key": key}
-                        payload={"question": question,"answer":answer}
-                    ))
-            if len(ps)>= 1:
-                cnt = 0
-                while cnt <= 3:
-                    try:
-                        #import ipdb
-                        #ipdb.set_trace()
-                        self.client.upsert(collection_name=self.collect_name,points=ps)
-                        ps = []
-                        break
-                    except Exception as e:
-                        print(e)
-                        try:
-                            print('现在尝试进行第{}次链接'.format(cnt))
-                            time.sleep(5)
-                            self.client = QdrantClient(self.host, port=6333)
-                            self.client.upsert(collection_name=self.collect_name,points=ps)
-                            ps = []
-                            print('第{}次链接成功，写入成功'.format(cnt))
-                            break
-                        except:
-                            print('第{}次链接失败，休息{}s'.format(cnt,10*cnt))
-                            time.sleep(10*cnt)
-                            cnt += 1
-                #if len(ps) > 0 and cnt >= 3:
-                if cnt >= 3:
-                    raise TimeoutError('qdrants insert timeout')
-    def build_plain_text(self,csv_path,vec_path=None):
+    def build_keys(self,csv_path,vec_path=None):
         #import ipdb
         #ipdb.set_trace()
         #loader = TextLoader(csv_path)
@@ -171,23 +101,12 @@ class zhuanliKey:
                 #if len(ps) > 0 and cnt >= 3:
                 if cnt >= 3:
                     raise TimeoutError('qdrants insert timeout')
-    def search_by_vector(self,query):
-        vector = query
-        if isinstance(query,str):
-            vector = hf_embeddings.embed_documents([query])
-            vector = vector[0]
-        import ipdb
-        ipdb.set_trace()
+    def search_by_vertix(self,vector):
         hits = self.client.search(
             collection_name=self.collect_name,
             query_vector=vector,
-            with_vectors=True,
-            limit=5  # Return 5 closest points
+            limit=1  # Return 5 closest points
         )
-        qdrant_question = hits[0].payload['question']
-        qdrant_vector = hits[0].vector
-        import ipdb
-        ipdb.set_trace()
         return hits
     def search_by_name(self,q_str,limit=10):
         try:
@@ -196,7 +115,7 @@ class zhuanliKey:
                 scroll_filter=Filter(
                     must=[
                         FieldCondition(
-                            key="question", 
+                            key="content", 
                             #key="key", 
                             match=MatchValue(value=q_str)
                         ),
@@ -244,27 +163,20 @@ if __name__ == '__main__':
     #argv = sys.argv
     #csv_path = 'data.txt'
     #csv_path = '/home/user/panyongcan/project/big_data/pretrain/chanye'
-    #csv_path = '/devdata/home/user/panyongcan/Project/chatweb1/llama_web_font/build_qdrant'
-    csv_path = "/home/guest/project/dataset/网格员/解压数据/婚姻纠纷数据文件/2.纠纷实例数据(网格员登记婚姻纠纷的真实描述，a类问答场景需要).xlsx"
-
+    csv_path = '/devdata/home/user/panyongcan/Project/chatweb1/llama_web_font/build_qdrant'
     #csv_path = argv[1]
     #if not csv_path:
     #    print('请加参数')
     #vec_path = '/home/zhangshao/zhangshao/Similarity/examples/data/patent_word_pn_3.npy'
     #zlk = zhuanliKey(collect_name="patent_key_word")
-    zlk = zhuanliKey(collect_name="wangge_class")
-    #zlk.build_plain_text(csv_path)
-    zlk.build_question_and_answer(csv_path)
+    zlk = zhuanliKey(collect_name="test_query")
+    zlk.build_keys(csv_path)
     #import ipdb
     #ipdb.set_trace()
-    #res = zlk.search_by_name('南阳市')
-    #res = zlk.search_by_name('你好')
-    res = zlk.search_by_vector('买房子钱借的')
-    #res = zlk.search_by_vector('你好，现在我老婆想给我离婚，是我不同意是不是离不了?')
-    #res = zlk.search_by_id('cb038e4d-fc48-3123-9847-b4f6f0cd9cf9')
+    res = zlk.search_by_name('南阳市')
+    #res = zlk.search_by_id('985b95d0-69a1-3f25-b3bc-6779a3d08266')
     #res = zlk.search_by_pn('CN201520086793.3')
     #res = zlk.search_by_pn('CN201510463993.0')
-    #zlk.delete_collcet_by_keyword('yeyu_chat')
     print(res)
 #import ipdb
 #ipdb.set_trace()

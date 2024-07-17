@@ -142,16 +142,20 @@ def get_dev_agent_output_fast(input_str):
     else:
         response_text = ''
     return response_text
-def get_prod_agent_output_fast(input_str):
+def get_prod_agent_output_fast(data):
     """
     这个接口使用openai的协议，但是不支持stream
     """
     #api_endpoint = "http://10.0.0.20:23336/v1/chat/completions"
-    api_endpoint = "http://10.0.0.12:23336/v1/chat/completions"
-    input_messages = get_generate_prompt(input_str)
-    #if isinstance(input_str,str):
+    #api_endpoint = "http://10.0.0.12:23336/v1/chat/completions"
+    api_endpoint = "http://127.0.0.1:8000/v1/chat/completions"
+    input_messages = [{"role": "user", "content": data}]
+    if isinstance(data,list):
+        input_messages = data
+    #input_messages = get_generate_prompt(data)
+    #if isinstance(data,str):
     #    history_data = [ {"role": "system", "content": "You are a helpful assistant. 你是一个乐于助人的助手。\n"}]
-    #    input_messages = [{"role": "user", "content": input_str}]
+    #    input_messages = [{"role": "user", "content": data}]
     #    history_data.extend(input_messages)
     #    input_messages = history_data
 
@@ -159,16 +163,17 @@ def get_prod_agent_output_fast(input_str):
       #"model": "gpt-3.5-turbo",
       #"model": "gpt-3.5-turbo-0613",
       #"model": "internlm2-chat-7b",
-      "model": "llama2",
-      "max_tokens":1512,
-      #"temperature":0.2,
-      "temperature":0.5,
-      "repetition_penalty":1.1,
-      "top_p":0.9,
-      "top_k":40,
+      #"model": "llama2",
+      "model": "qwen2",
+      #"max_tokens":1512,
+      ##"temperature":0.2,
+      #"temperature":0.5,
+      #"repetition_penalty":1.1,
+      #"top_p":0.9,
+      #"top_k":40,
       #"model": "gpt-4-0613",
       #"messages": [{"role": "user", "content": "Hello!"}]
-      #"messages": [{"role": "user", "content": input_str}],
+      #"messages": [{"role": "user", "content": data}],
       "messages": input_messages,
       #"stream":True
       "stream":False
@@ -413,6 +418,7 @@ def get_prod_stream_llm(data):
 def completion_with_backoff(**kwargs):
     try:
         return  openai.ChatCompletion.create(**kwargs)
+        #return  openai.chat.completions.create(**kwargs)
     except Exception as e:
         #import ipdb
         #ipdb.set_trace()
@@ -439,7 +445,7 @@ def get_output_with_openai(history_data):
     #openai.api_key = os.getenv("OPENAI_API_KEY")
     openai.api_key = 'sk-cRujJbZqefFoj5753c8d94B8F7654c57807cCc3b145aC547'
     openai.api_base = settings.llm.api_host
-    response = completion_with_backoff(model="internlm2-chat-7b", messages=history_data, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    response = completion_with_backoff(model="internlm2-chat-7b", messages=history_data, max_tokens=20480, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
     resTemp = ''
     try:
         for chunk in response:
@@ -506,7 +512,7 @@ def get_dev_stream_with_openapi(data):
     openai.api_base = api_endpoint
     #openai.api_base = settings.llm.api_host
     #response = completion_with_backoff(model="internlm2-chat-7b", temperature=0.6,repetition_penalty=1.08,top_p=0.7,top_k=20,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
-    response = completion_with_backoff(model="internlm2-chat-7b", temperature=0.2,repetition_penalty=1.08,top_p=0.6,top_k=40,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    response = completion_with_backoff(model="internlm2-chat-7b", temperature=0.2,repetition_penalty=1.08,top_p=0.6,top_k=40,messages=input_messages, max_tokens=20480, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
     #response = completion_with_backoff(model="internlm2-chat-7b", temperature=0.6,repetition_penalty=1.02,top_p=0.6,top_k=40,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
     #response = completion_with_backoff(model="internlm2-chat-7b", temperature=0.6,repetition_penalty=1.1,top_p=0.6,top_k=40,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
     #response = completion_with_backoff(model="/home/user/panyongcan/project/llm/Chinese-LLaMA-Alpaca-2/scripts/Llama2-chat-13b", temperature=0.6,repetition_penalty=1.35,top_p=0.6,top_k=20,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
@@ -526,22 +532,27 @@ def get_dev_stream_with_openapi(data):
     yield "data: %s\n\n" % "[DONE]"
 def get_prod_stream_with_openapi(data):
     #history_data = [ {"role": "system", "content": "You are a helpful assistant."}]
-    input_messages = get_generate_prompt(data)
-    #input_messages = [{"role": "user", "content": data}]
-    #if isinstance(data,list):
-    #    input_messages = data
+    #input_messages = get_generate_prompt(data)
+    #import ipdb
+    #ipdb.set_trace()
+    input_messages = [{"role": "user", "content": data}]
+    if isinstance(data,list):
+        input_messages = data
     openai.api_key = 'sk-cRujJbZqefFoj5753c8d94B8F7654c57807cCc3b145aC547'
-    api_endpoint = "http://10.0.0.12:23333/v1"
+    api_endpoint = "http://127.0.0.1:8000/v1"
     openai.api_base = api_endpoint
     #openai.api_base = settings.llm.api_host
     #response = completion_with_backoff(model="internlm2-chat-7b", messages=history_data, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
     #response = completion_with_backoff(model="internlm2-chat-7b", messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
     #response = completion_with_backoff(model="internlm2-chat-7b", temperature=0.6,repetition_penalty=1.1,top_p=0.6,top_k=40,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
-    response = completion_with_backoff(model="internlm2", temperature=0.6,repetition_penalty=1.1,top_p=0.6,top_k=40,messages=input_messages, max_tokens=2048, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    #response = completion_with_backoff(model="internlm2", temperature=0.6,repetition_penalty=1.1,top_p=0.6,top_k=40,messages=input_messages, max_tokens=20480, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    response = completion_with_backoff(model="internlm2", messages=input_messages, max_tokens=20480, stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
     resTemp=""
     try:
         for chunk in response:
             #print(chunk)
+            #import ipdb
+            #ipdb.set_trace()
             if chunk['choices'][0]["finish_reason"]!="stop":
                 if hasattr(chunk['choices'][0]['delta'], 'content'):
                     resTemp+=chunk['choices'][0]['delta']['content']
@@ -561,7 +572,7 @@ def get_zhishiku_stream_with_openapi(data):
     api_endpoint = "http://10.0.0.20:8000/v1"
     openai.api_base = api_endpoint
     model = "/home/user/panyongcan/project/llm/origin/Orion-master/quantization/quantized_model"
-    response = completion_with_backoff(model=model, temperature=0.2,repetition_penalty=1.1,top_p=0.9,top_k=40,max_tokens=2048,messages=data,  stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
+    response = completion_with_backoff(model=model, temperature=0.2,repetition_penalty=1.1,top_p=0.9,top_k=40,max_tokens=20480,messages=data,  stream=True, headers={"x-api2d-no-cache": "1"},timeout=3)
     resTemp=""
     try:
         for chunk in response:

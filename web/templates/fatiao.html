@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>法条推荐</title>
+</head>
+<body>
+    <h1>相关法条</h1>
+    <!--form action="/" method="get">
+        <input type="text" name="keyword" placeholder="Enter keyword" value="{{ keyword }}">
+        <input type="submit" value="Search">
+    </form --!>
+
+    {% if results %}
+        <!--h2>与"{{ keyword }}"有关的法条如下:</h2-->
+        <ul>
+            {% for item in results %}
+                <li>{{ item.法规名称 }} {{ item.法条名称 }}</li>
+		<pre>{{ item.法条内容 }}</pre>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>

@@ -192,48 +192,6 @@
     .chat_toolbar div[aria-haspopup] {
       margin: 0;
     }
-
-    .clickable-text {
-      color: #007bff; /* 蓝色，常见的链接颜色 */
-      text-decoration: underline; /* 下划线，表示可点击 */
-      cursor: pointer; /* 鼠标悬停时显示手形光标 */
-    }
-    
-    .clickable-text:hover {
-      color: #0056b3; /* 鼠标悬停时颜色加深 */
-    }
-    .horizontal-list {
-      overflow: hidden; /* 清除浮动，防止父元素高度塌陷 */
-      padding: 0; /* 移除默认的内边距 */
-      margin: 0; /* 移除默认的外边距 */
-    }
-
-    .ellipse-button {
-      display: inline-block; /* 横向分布的关键 */
-      border: 1px solid #666; /* 默认显示轮廓 */
-      border-radius: 50px; /* 椭圆形状 */
-      padding: 5px 6px; /* 内边距 */
-      cursor: pointer;
-      background-image: linear-gradient(to bottom, #ffffff, #e6e6e6); /* 渐变背景 */
-      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); /* 阴影效果 */
-      transition: background-color 0.3s, box-shadow 0.3s; /* 过渡效果 */
-      background-color: #eee; /* 默认背景颜色 */
-      transition: background-color 0.3s; /* 背景颜色变化过渡 */
-      margin-right: 10px; /* 按钮之间的间隔 */
-      margin-top: 5px; /* 按钮上方的间隔 */
-      margin-bottom: 5px; /* 按钮下方的间隔 */
-      outline: none; /* 移除点击时的轮廓 */
-    }
-
-    .ellipse-button:hover {
-      /* background-color: #ddd; 鼠标悬停时颜色加深 */
-      background-image: linear-gradient(to bottom, #e6e6e6, #ffffff); /* 鼠标悬停时的渐变背景 */
-      box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.3); /* 鼠标悬停时的阴影效果 */
-    }
-    .ellipse-button:active {
-      box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.2); /* 点击时的内阴影效果 */
-      background-image: linear-gradient(to bottom, #d9d9d9, #f2f2f2); /* 点击时的渐变背景 */
-    }
   </style>
   </head>
 
@@ -324,24 +282,6 @@
                 </template>
               </span>
             </div>
-	    <br /><br /><div>
-              <span>
-                <!-- 在聊天界面的合适位置 -->
-                <div v-if="similarQuestions.length > 0" class="similar-questions">
-                  <h3>您可能还对以下问题感兴趣：</h3>
-                  <div class="horizontal-list">
-                    <button 
-                      v-for="question in similarQuestions" 
-                      :key="question"
-                      class="ellipse-button"
-                      @click="selectSimilarQuestion(question)"
-                    >
-                      {{ question }}
-                    </button>
-                  </div>
-                </div>
-              </span>
-	    </div>
             <br /><br /><br /><br /><br /><br /><br /><br /><br />
             <v-footer fixed class="pr-0">
               <div class="chat_toolbar">
@@ -689,7 +629,7 @@
           // history_on: false,
           history_on: true,
           // 历史记录的数量限制
-          history_limit: 10,
+          history_limit: 3,
           // 功能菜单
           func_menu: func,
           // 当前选中的功能
@@ -751,9 +691,6 @@
           color: "purple",
           //管理界面中，搜索auto的关键词
           autos_search: "",
-          //similarQuestions: [{'text':'ceshi','id':1}], // 用于存储相似问题
-          similarQuestions: [], // 用于存储相似问题
-          currentQuestion: "", // 当前用户的问题，用于匹配相似问题
         };
       },
       methods: {
@@ -763,24 +700,6 @@
           let md = new markdownit();
           // md.disable(['link', 'image'])
           return md.render(conent).replace(/<a /g, '<a target="_blank"').replace(/[\r\n]+!$/g, "<br>")
-        },
-        findSimilarQuestions(question) {
-          this.currentQuestion = question;
-          // 这里可以添加查找相似问题的逻辑，例如调用API或使用本地数据
-          // 假设我们有一个API endpoint '/api/similar-questions' 可以根据问题返回相似问题
-          fetch(`/api/similar-questions?question=${encodeURIComponent(question)}`)
-            .then(response => response.json())
-            .then(data => {
-              this.similarQuestions = data;
-            });
-        },
-        selectSimilarQuestion(similarQuestion) {
-          // 更新聊天历史或清空输入框等逻辑
-          //this.question = similarQuestion.text;
-          this.question = similarQuestion;
-          // 可以在这里调用 submit 方法发送相似问题
-          submit();
-
         },
       },
     });
@@ -804,7 +723,6 @@
 
     // 处理表单提交事件并将用户的输入发送到服务器
     submit = async (e) => {
-      app.similarQuestions = [] //确认点击相似问题之后，原来的相似问题消失
       if (e && e.shiftKey) {
         this.question += "\n";
       } else if (typeof app.func_mode.question == "function") {
@@ -899,9 +817,6 @@
       app.loading = false;
       is_wait_till = true;
       save_history();
-    // 添加逻辑在问题发送后获取相似问题
-      //app.findSimilarQuestions(current_session.content);
-      app.findSimilarQuestions(s);
       if (is_abord) throw new MyException("已中断");
       return current_session.content;
     };
