@@ -699,18 +699,19 @@ def check_class(history_data,prompt,zhishiku):
     ##import ipdb
     ##ipdb.set_trace()
     history_data.append({'role':'user','content':new_prompt})
-    if len(prompt) < 30:
-        return '其它'
     c_class = get_agent(history_data)
     if c_class == '其它':
         return c_class
     hits = zhishiku.zsk[7]['zsk'].find(prompt)
     res = {}
     max_count = 0
+    max_score = 0
     c_class = '其它'
     for hit in hits:
         score = hit['score']
         answer = hit['answer']
+        if score > max_score:
+            max_score = score
         if score > 0.95:
             c_class = answer
             break
@@ -721,6 +722,8 @@ def check_class(history_data,prompt,zhishiku):
             c_class = answer
             max_count = res[answer]
 
+    if len(prompt) < 30 and max_score < 0.95:
+        return '其它'
     return c_class
 def get_fatiao(c_class,zhishiku):
     sql = f'select `法规名称`,`法条名称` from Algrithm.4_法条推送_c类问答场景需要 where `纠纷类型` = \'{c_class}\';'
@@ -798,7 +801,8 @@ def chat_one(prompt, history_formatted, max_length, top_p, temperature, web_rece
         jianyi = jianyi_jiegou[0]['化解建议']
         jieguo = jianyi_jiegou[0]['化解预期结果']
         #instruction = instruction + '\n    化解方案：' + f'\n    {fangan}' + '\n    化解建议：' + f'\n    {jianyi}' + '\n    化解预期结果：' + f'\n    {jieguo}' + '\n'
-        #instruction =  '\n    化解方案：' + f'\n    {fangan}' + '\n    化解建议：' + f'\n    {jianyi}' + '\n    化解预期结果：' + f'\n    {jieguo}' + '\n' + instruction
+        instruction =  '\n    化解方案：' + f'\n    {fangan}' + '\n    化解建议：' + f'\n    {jianyi}' + '\n    化解预期结果：' + f'\n    {jieguo}' + '\n' + instruction
+        print(instruction)
     #import ipdb
     #ipdb.set_trace()
     prompt = instruction + prompt
